@@ -2,6 +2,8 @@
 
 A transparent, user-friendly web application for fair electricity bill calculation among multiple occupants.
 
+App Link: [Click here]()
+
 ## 📋 Table of Contents
 - [Problem Statement](#-problem-statement)
 - [Solution](#-solution)
@@ -198,6 +200,7 @@ For support, email chiezie.arthur@gmail.com or create an issue in the GitHub rep
 
 ---
 
-**Designed with ❤️ by Arthur_Techy**
+**Designed by Arthur_Techy**
 
 *Transforming shared living experiences through transparent technology solutions.*
+
