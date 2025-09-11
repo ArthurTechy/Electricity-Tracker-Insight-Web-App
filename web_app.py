@@ -669,14 +669,17 @@ def history_page():
     
     with col3:
         # Email latest report
-        if st.button("📧 Email Latest Report"):
-            if st.session_state.settings['email_notifications']:
-                if send_email_notification(history[-1]):
-                    st.success("✅ Email sent!")
+        if EMAIL_AVAILABLE:
+            if st.button("📧 Email Latest Report"):
+                if st.session_state.settings['email_notifications']:
+                    if send_email_notification(history[-1]):
+                        st.success("✅ Email sent!")
+                    else:
+                        st.error("❌ Email failed")
                 else:
-                    st.error("❌ Email failed")
-            else:
-                st.warning("⚠️ Email not configured")
+                    st.warning("⚠️ Email not configured")
+        else:
+            st.info("📧 Email not available in this environment")
     
     # Display history table
     st.subheader("📋 Recent Calculations")
