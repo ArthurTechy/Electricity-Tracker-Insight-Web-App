@@ -7,9 +7,6 @@ import json
 import os
 import io
 import base64
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
-import smtplib
 
 # Page configuration
 st.set_page_config(
@@ -32,13 +29,7 @@ if 'settings' not in st.session_state:
             {'name': 'Mr Martin', 'icon': '👤'}
         ],
         'compound_name': 'Owolawi Compound',
-        'currency': '₦',
-        'email_notifications': False,
-        'smtp_server': '',
-        'smtp_port': 587,
-        'email_username': '',
-        'email_password': '',
-        'notification_emails': []
+        'currency': '₦'
     }
 
 # Dynamic CSS based on settings
@@ -198,88 +189,6 @@ def export_to_excel(history_data):
     
     output.seek(0)
     return output.getvalue()
-
-def send_email_notification(calculation_data):
-    """Send email notification with calculation results"""
-    settings = st.session_state.settings
-    
-    if not settings['email_notifications'] or not settings['notification_emails']:
-        return False
-    
-    try:
-        # Create email content
-        subject = f"{settings['compound_name']} - Electricity Bill Calculation"
-        
-        body = f"""
-        <h2>{settings['compound_name']} Electricity Consumption Report</h2>
-        <p><strong>Calculation Date:</strong> {calculation_data['timestamp']}</p>
-        <p><strong>Rate:</strong> {settings['currency']}{calculation_data['rate_per_kwh']}/kWh</p>
-        
-        <h3>Individual Consumption & Costs:</h3>
-        <table border="1" style="border-collapse: collapse; width: 100%;">
-            <tr>
-                <th>Occupant</th>
-                <th>Consumption (kWh)</th>
-                <th>Personal Cost</th>
-                <th>Water Share</th>
-                <th>Total Amount</th>
-            </tr>
-        """
-        
-        occupants = st.session_state.settings['occupants']
-        water_cost = calculation_data.get('water_cost', 0)
-        water_share = water_cost / len(occupants) if len(occupants) > 0 else 0
-        
-        for i, occupant in enumerate(occupants):
-            consumed = calculation_data.get(f'occupant_{i}_consumed', 0)
-            total = calculation_data.get(f'occupant_{i}_total', 0)
-            personal_cost = total - water_share
-            
-            body += f"""
-            <tr>
-                <td>{occupant['name']}</td>
-                <td>{consumed:.1f}</td>
-                <td>{settings['currency']}{personal_cost:,.0f}</td>
-                <td>{settings['currency']}{water_share:,.0f}</td>
-                <td>{settings['currency']}{total:,.0f}</td>
-            </tr>
-            """
-        
-        body += f"""
-        </table>
-        
-        <h3>Water Pump Details:</h3>
-        <p><strong>Water Pump Consumption:</strong> {calculation_data.get('water_consumed', 0):.1f} kWh</p>
-        <p><strong>Total Water Cost:</strong> {settings['currency']}{water_cost:,.0f}</p>
-        <p><strong>Water Cost Per Person:</strong> {settings['currency']}{water_share:,.0f}</p>
-        
-        <p><strong>Grand Total:</strong> {settings['currency']}{calculation_data.get('total_amount', 0):,.0f}</p>
-        
-        <hr>
-        <p><em>This is an automated notification from {settings['compound_name']} Electricity Tracker</em></p>
-        """
-        
-        # Send email
-        msg = MimeMultipart()
-        msg['From'] = settings['email_username']
-        msg['Subject'] = subject
-        msg.attach(MimeText(body, 'html'))
-        
-        server = smtplib.SMTP(settings['smtp_server'], settings['smtp_port'])
-        server.starttls()
-        server.login(settings['email_username'], settings['email_password'])
-        
-        for email in settings['notification_emails']:
-            msg['To'] = email
-            server.send_message(msg)
-            del msg['To']
-        
-        server.quit()
-        return True
-        
-    except Exception as e:
-        st.error(f"Email notification failed: {e}")
-        return False
 
 # Load settings on startup
 load_settings()
@@ -549,7 +458,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         st.plotly_chart(fig_bar, use_container_width=True)
     
     # Save and export options
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         if st.button("💾 Save This Calculation", type="secondary"):
@@ -569,21 +478,6 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                     file_name=f"{settings['compound_name']}_electricity_history_{datetime.now().strftime('%Y%m%d')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-    
-    with col3:
-        if st.button("📧 Send Email Notification", type="secondary"):
-            if settings['email_notifications']:
-                calculation_data = create_calculation_data(
-                    current_timestamp, initial_readings, final_readings,
-                    consumptions, costs, total_costs, water_consumed,
-                    water_cost, rate, total_amount
-                )
-                if send_email_notification(calculation_data):
-                    st.success("✅ Email notification sent!")
-                else:
-                    st.error("❌ Failed to send email notification")
-            else:
-                st.warning("⚠️ Email notifications not configured. Check Settings.")
 
 def create_calculation_data(timestamp, initial_readings, final_readings, 
                           consumptions, costs, total_costs, water_consumed, 
@@ -628,9 +522,6 @@ def save_calculation(timestamp, initial_readings, final_readings,
     if save_history(history):
         st.success("✅ Calculation saved successfully!")
         
-        # Send email if enabled
-        if st.session_state.settings['email_notifications']:
-            send_email_notification(calculation_data)
     else:
         st.error("❌ Failed to save calculation")
 
@@ -644,7 +535,7 @@ def history_page():
         return
     
     # Export options
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         # Download JSON
@@ -667,19 +558,6 @@ def history_page():
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
     
-    with col3:
-        # Email latest report
-        if EMAIL_AVAILABLE:
-            if st.button("📧 Email Latest Report"):
-                if st.session_state.settings['email_notifications']:
-                    if send_email_notification(history[-1]):
-                        st.success("✅ Email sent!")
-                    else:
-                        st.error("❌ Email failed")
-                else:
-                    st.warning("⚠️ Email not configured")
-        else:
-            st.info("📧 Email not available in this environment")
     
     # Display history table
     st.subheader("📋 Recent Calculations")
@@ -852,74 +730,6 @@ def settings_page():
                     st.success("All history cleared!")
                     st.experimental_rerun()
     
-    # Email Configuration
-    st.subheader("📧 Email Notifications")
-    
-    with st.expander("Configure Email Settings"):
-        settings = st.session_state.settings
-        
-        settings['email_notifications'] = st.checkbox(
-            "Enable Email Notifications", 
-            value=settings['email_notifications']
-        )
-        
-        if settings['email_notifications']:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                settings['smtp_server'] = st.text_input(
-                    "SMTP Server", 
-                    value=settings['smtp_server'],
-                    placeholder="smtp.gmail.com"
-                )
-                settings['email_username'] = st.text_input(
-                    "Email Username", 
-                    value=settings['email_username'],
-                    placeholder="your-email@gmail.com"
-                )
-            
-            with col2:
-                settings['smtp_port'] = st.number_input(
-                    "SMTP Port", 
-                    value=settings['smtp_port'],
-                    min_value=1,
-                    max_value=9999
-                )
-                settings['email_password'] = st.text_input(
-                    "Email Password", 
-                    value=settings['email_password'],
-                    type="password",
-                    help="Use App Password for Gmail"
-                )
-            
-            # Notification email list
-            st.subheader("📮 Notification Recipients")
-            
-            # Add new email
-            new_email = st.text_input("Add Email Address")
-            if st.button("➕ Add Email") and new_email:
-                if new_email not in settings['notification_emails']:
-                    settings['notification_emails'].append(new_email)
-                    st.success(f"Added {new_email}")
-                else:
-                    st.warning("Email already exists")
-            
-            # Display current emails
-            if settings['notification_emails']:
-                st.write("**Current Recipients:**")
-                for i, email in enumerate(settings['notification_emails']):
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.write(f"📧 {email}")
-                    with col2:
-                        if st.button("🗑️", key=f"remove_{i}"):
-                            settings['notification_emails'].remove(email)
-                            st.experimental_rerun()
-        
-        if st.button("💾 Save Email Settings"):
-            if save_settings():
-                st.success("✅ Email settings saved!")
-    
     st.subheader("ℹ️ About This App")
     compound_name = st.session_state.settings['compound_name']
     st.markdown(f"""
@@ -929,7 +739,6 @@ def settings_page():
     - Maintain historical records with Excel export
     - Visualize consumption patterns
     - Calculate transparent billing
-    - Send email notifications
     - Customize occupants, colors, and rates
     
     **Features:**
@@ -938,7 +747,6 @@ def settings_page():
     - 📱 Mobile-friendly design
     - 🔄 Quick loading from previous readings
     - 📈 Trend analysis
-    - 📧 Email notifications
     - 📊 Excel export functionality
     - 🎨 Customizable interface
     """)
@@ -1161,3 +969,4 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by Arthur_Techy</div>', unsafe_allow_html=True)
+
