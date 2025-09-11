@@ -44,8 +44,7 @@ App Link: [Click here]()
 - 📈 **Historical Analytics**: Track consumption patterns over time
 - 📱 **Mobile-Friendly Interface**: Access from any device
 - 🎨 **Customizable Settings**: Adapt to different compounds
-- 📊 **Excel Export**: Professional reporting capabilities
-- 📧 **Email Notifications**: Automated bill notifications
+- 📊 **Excel Export**: Professional reporting capabilities (📧 Email notifications available in local deployment)
 
 ---
 
@@ -62,7 +61,7 @@ App Link: [Click here]()
 - **Visualization**: Plotly for interactive charts
 - **Data Storage**: JSON files for persistence
 - **Export**: Excel integration with OpenPyXL
-- **Communication**: SMTP email notifications
+- **Communication**: (📧 Email notifications available in local deployment)
 - **Deployment**: Streamlit Community Cloud (Free hosting)
 
 ### **Calculation Logic:**
@@ -103,7 +102,7 @@ Final Bill = Individual Cost + Water Share
 
 1. **Internet Dependency**: Requires stable internet connection for cloud access
 2. **Manual Data Entry**: Meter readings still need manual input (no IoT integration)
-3. **Email Configuration**: Requires technical setup for notifications
+3. **Email Configuration**: Not available in cloud deployment (works in local installation only)
 4. **Single Currency**: Currently optimized for Nigerian Naira (₦)
 5. **Basic Authentication**: No advanced user access controls
 6. **Storage Limitation**: Relies on local JSON files (not enterprise database)
@@ -120,6 +119,7 @@ Final Bill = Individual Cost + Water Share
 - 🌍 **Multi-Currency Support**: Global currency compatibility
 - 🤖 **AI Analytics**: Predictive consumption patterns
 - ☁️ **Cloud Database**: PostgreSQL/MongoDB integration
+- 📧 **Enhanced Email System**: Cloud-compatible notification service
 - 📲 **SMS Notifications**: WhatsApp and SMS alerts
 
 ### **Phase 3 Vision:**
@@ -135,7 +135,7 @@ Final Bill = Individual Cost + Water Share
 ### **For Users:**
 1. **Regular Data Entry**: Input readings weekly for accurate tracking
 2. **Backup Settings**: Export configurations regularly
-3. **Email Setup**: Configure notifications for automated reports
+3. **Excel Reports**: Use Excel export feature for sharing with occupants
 4. **Data Review**: Monitor consumption patterns monthly
 
 ### **For Compound Management:**
