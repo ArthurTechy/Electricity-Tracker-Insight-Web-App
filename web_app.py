@@ -225,7 +225,7 @@ def calculation_page():
         if st.button("📋 Use Last Readings as Initial"):
             latest = get_latest_readings()
             for key, value in latest.items():
-                st.session_state[f"{key}_session"] = value
+                st.session_state[f"{key}_session"] = float(value) if value is not None else 0.0
             st.success("✅ Last readings loaded as initial values!")
     
     # Input section
@@ -248,7 +248,7 @@ def calculation_page():
             initial_readings[key] = st.number_input(
                 "Initial Reading", 
                 min_value=0.0, 
-                value=st.session_state.get(f"{key}_final_session", 0.0),
+                value= float(st.session_state.get(f"{key}_final_session", 0.0)),
                 step=0.1, 
                 key=f"{key}_init"
             )
@@ -278,7 +278,7 @@ def calculation_page():
             key = f"occupant_{i}"
             final_readings[key] = st.number_input(
                 "Final Reading", 
-                min_value=initial_readings[key], 
+                min_value=float(initial_readings[key]), 
                 value=initial_readings[key],
                 step=0.1, 
                 key=f"{key}_final"
@@ -372,7 +372,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     # Summary table
     st.subheader("📊 Final Summary")
     
-    current_timestamp = datetime.now().strftime("%a, %d-%m-%Y %I:%M:%S %p")
+    current_timestamp = datetime.now().strftime("%a, %d/%m/%Y")
     
     # Create summary data
     summary_data = {
@@ -420,7 +420,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     if col_idx < 4:
         with cols[col_idx % 4]:
             st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-            st.metric("📅 Calculated On", current_timestamp.split()[0])
+            st.metric("📅 Calculated On", current_timestamp)
             st.markdown('</div>', unsafe_allow_html=True)
     
     # Consumption charts
@@ -972,4 +972,5 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
