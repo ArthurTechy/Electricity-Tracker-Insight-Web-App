@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+import pytz
 import json
 import os
 import io
@@ -372,8 +373,11 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     # Summary table
     st.subheader("📊 Final Summary")
 
-    # Formated current_timestamp
-    current_timestamp = datetime.now().strftime("%a, %d/%m/%y %I:%M%p")
+    # Get WAT timezone
+    wat_tz = pytz.timezone('Africa/Lagos')  # WAT timezone
+    
+    # Get current time in WAT
+    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%y %I:%M%p")
     # Remove leading zeros and convert to lowercase
     current_timestamp = current_timestamp.replace("/0", "/").replace(" 0", " ").lower()
     
@@ -393,7 +397,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Additional summary cards
     num_cards = len(occupants) + 3  # occupants + 3 summary cards
-    cols = st.columns(min(4, num_cards))  # Max 4 columns per row
+    cols = st.columns(min(5, num_cards))  # Max 4 columns per row
     
     col_idx = 0
     
@@ -975,6 +979,7 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
