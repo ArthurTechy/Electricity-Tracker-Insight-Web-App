@@ -397,7 +397,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Additional summary cards
     num_cards = len(occupants) + 3  # occupants + 3 summary cards
-    cols = st.columns(min(5, num_cards))  # Max 4 columns per row
+    cols = st.columns(min(4, num_cards))  # Max 4 columns per row
     
     col_idx = 0
     
@@ -424,11 +424,21 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         col_idx += 1
     
     # Date card
+    # if col_idx < 4:
+    #     with cols[col_idx % 4]:
+    #         st.markdown('<div class="summary-card">', unsafe_allow_html=True)
+    #         st.metric("📅 Calculated On", current_timestamp)
+    #         st.markdown('</div>', unsafe_allow_html=True)
+
     if col_idx < 4:
         with cols[col_idx % 4]:
             st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-            st.metric("📅 Calculated On", current_timestamp)
+            # Split the timestamp
+            date_part = current_timestamp.split(',')[0]  # "fri"
+            time_part = current_timestamp.split(' ', 1)[1]  # "12/9/25 1:45pm"
+            st.markdown(f"**📅 {date_part.title()}**<br>{time_part}", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
+        
     
     # Consumption charts
     st.subheader("📊 Consumption Breakdown Chart")
@@ -979,6 +989,7 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
