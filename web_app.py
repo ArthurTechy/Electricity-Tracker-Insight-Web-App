@@ -217,7 +217,7 @@ def main():
 
 def calculation_page():
     settings = st.session_state.settings
-    st.header("📊 New Electricity Consumption Calculation & Insight")
+    st.subheader("📊 New Electricity Consumption Calculation & Insight")
     
     # Quick load from last reading
     col1, col2 = st.columns([3, 1])
@@ -972,3 +972,4 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
