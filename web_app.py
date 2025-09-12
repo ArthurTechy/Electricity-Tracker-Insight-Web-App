@@ -51,57 +51,68 @@ if 'consumption_history' not in st.session_state:
 # -------------------------
 # Utilities: persistence
 # -------------------------
+HISTORY_FILENAME = "consumption_history.json"
+
 def load_history_from_file():
     """Load history from JSON file into session state (called on startup & when needed)."""
     try:
         if os.path.exists(HISTORY_FILENAME):
-            with open(HISTORY_FILENAME, 'r', encoding='utf-8') as f:
+            with open(HISTORY_FILENAME, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
                     st.session_state.consumption_history = data.copy()
                 else:
-                    # if file contents are invalid, reset to empty
+                    # Reset if invalid file contents
                     st.session_state.consumption_history = []
         else:
             st.session_state.consumption_history = []
     except Exception as e:
-        # If something goes wrong reading, keep session state list and show debug
         st.error(f"Error loading history file: {e}")
         st.session_state.consumption_history = []
+
 
 def save_history_to_file():
     """Write session state's consumption_history to disk (JSON)."""
     try:
-        with open(HISTORY_FILENAME, 'w', encoding='utf-8') as f:
-            json.dump(st.session_state.consumption_history, f, indent=2, ensure_ascii=False)
+        with open(HISTORY_FILENAME, "w", encoding="utf-8") as f:
+            json.dump(
+                st.session_state.consumption_history,
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
         return True
     except Exception as e:
         st.error(f"Error saving history file: {e}")
         return False
 
-# Wrap load/save functions used by the app (keeps names similar to original)
+
 def load_history():
     """Return consumption history (session-state-backed, ensures file load)."""
-    # Make sure session history is loaded once from file
-    if 'history_loaded_from_file' not in st.session_state:
+    if "consumption_history" not in st.session_state:
+        st.session_state.consumption_history = []
+
+    # Ensure file load happens once
+    if "history_loaded_from_file" not in st.session_state:
         load_history_from_file()
         st.session_state.history_loaded_from_file = True
+
     return st.session_state.consumption_history
+
 
 def save_history(history_data):
     """Save history both to session state and to JSON file."""
     try:
         st.session_state.consumption_history = history_data.copy()
-        saved = save_history_to_file()
-        return saved
+        return save_history_to_file()
     except Exception as e:
         st.error(f"Error saving data: {e}")
         return False
 
+
 def reset_history():
     """Clear session and file history."""
     st.session_state.consumption_history = []
-    # remove file if exists
     try:
         if os.path.exists(HISTORY_FILENAME):
             os.remove(HISTORY_FILENAME)
@@ -621,20 +632,43 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 )
 
     with col3:
-        # Allow download of a combined JPEG (charts + table + footer)
-        if st.button("📷 Download Report Image (JPEG)", key="download_image_btn"):
-            # Build a display-friendly df for the table (avoid very long currency formatting)
-            df_for_image = df_summary.copy()
-            # Optionally convert costs to plain strings already done in summary creation
-            image_bytes = create_combined_image(df_for_image, fig_pie, fig_bar, st.session_state.settings)
-            if image_bytes:
-                st.download_button(
-                    label="⬇️ Download Report JPEG",
-                    data=image_bytes,
-                    file_name=f"{st.session_state.settings['compound_name']}_report_{datetime.now().strftime('%d%m%Y_%H%M')}.jpg",
-                    mime="image/jpeg",
-                    key="download_jpg"
+        # Allow download of a combined JPEG (table + chart)
+        if df_summary is not None and not df_summary.empty:
+            def export_summary_as_image(df):
+                fig, axes = plt.subplots(2, 1, figsize=(8, 10))
+    
+                # Plot chart
+                sns.lineplot(ax=axes[0], data=df, x=df.index, y=df.columns[1], marker="o")  
+                axes[0].set_title("Consumption Breakdown")
+    
+                # Table
+                axes[1].axis("off")
+                table_data = df.round(2).values
+                col_labels = df.columns
+                axes[1].table(
+                    cellText=table_data,
+                    colLabels=col_labels,
+                    cellLoc="center",
+                    loc="center"
                 )
+    
+                plt.tight_layout()
+    
+                buf = io.BytesIO()
+                plt.savefig(buf, format="jpeg", dpi=200, bbox_inches="tight")
+                plt.close(fig)
+                buf.seek(0)
+                return buf.getvalue()
+    
+            jpeg_bytes = export_summary_as_image(df_summary)
+    
+            st.download_button(
+                label="📷 Download Report JPEG",
+                data=jpeg_bytes,
+                file_name=f"{settings['compound_name']}_report_{datetime.now().strftime('%d%m%Y_%H%M')}.jpg",
+                mime="image/jpeg",
+                key="download_jpg"
+            )
 
 def history_page():
     st.header("📈 Consumption History & Analytics")
@@ -1072,5 +1106,6 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
