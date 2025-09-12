@@ -361,9 +361,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     wat_tz = pytz.timezone('Africa/Lagos')  # WAT timezone
     
     # Get current time in WAT
-    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
-    # Remove leading zeros and convert to lowercase
-    current_timestamp = current_timestamp.replace("/0", "/").replace(" 0", " ").lower()
+    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p").lower()
     
     # Create summary data
     summary_data = {
@@ -407,15 +405,15 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         st.markdown('</div>', unsafe_allow_html=True)
         col_idx += 1
     
-    # Date card - use more compact format
-    if col_idx < 6:
-        with cols[col_idx % 6]:
+    # Date card
+    if col_idx < 4:
+        with cols[col_idx % 4]:
             st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-            # Use a more compact timestamp format
-            compact_timestamp = datetime.now(wat_tz).strftime("%d/%m %I:%M%p").replace("/0", "/").replace(" 0", " ").lower()
-            st.markdown(f"**📅 Calculated**<br>{compact_timestamp}", unsafe_allow_html=True)
+            # Split the timestamp
+            date_part = current_timestamp.split(',')[0]  # "fri"
+            time_part = current_timestamp.split(' ', 1)[1]  # "12/9/25 1:45 pm"
+            st.markdown(f"**📅 {date_part.title()}**<br>{time_part}", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        
     
     # Consumption charts
     st.subheader("📊 Consumption Breakdown Chart")
@@ -985,3 +983,4 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
