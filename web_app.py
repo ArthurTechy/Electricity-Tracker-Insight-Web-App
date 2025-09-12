@@ -548,10 +548,12 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
 
         # Save into session so JPEG export can reuse
         st.session_state["breakdown_text"] = breakdown_text
-
+        
+# local time
+wat_tz = pytz.timezone('Africa/Lagos')
     # Summary table & timestamp
     st.subheader("📊 Final Summary")
-    wat_tz = pytz.timezone('Africa/Lagos')
+    
     current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
 
     summary_data = {
@@ -671,7 +673,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                     x="Consumed (kWh)",
                     palette="Blues_d"
                 )
-                ax1.set_title(f'Consumption Breakdown_{datetime.now().strftime('%d-%m-%Y_%I:%M')}, fontsize=13, weight="bold"')
+                ax1.set_title(f"Consumption Breakdown {datetime.now(wat_tz).strftime('%d-%m-%Y %I:%M %p')}", fontsize=13, weight="bold"')
                 ax1.set_xlabel("Consumption (kWh)")
                 ax1.set_ylabel("")
             
@@ -713,7 +715,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             st.download_button(
                 label="📷 Download Report JPEG",
                 data=jpeg_bytes,
-                file_name=f"{settings['compound_name']}_Electric_Consumption_report_{datetime.now().strftime('%d-%m-%Y_%I%M')}.jpg",
+                file_name=f"{settings['compound_name']}_Electricity_Consumption_report_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.jpg",
                 mime="image/jpeg",
                 key="download_jpg"
             )
@@ -1155,6 +1157,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
