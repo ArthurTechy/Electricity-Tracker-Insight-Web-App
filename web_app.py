@@ -653,7 +653,7 @@ def history_page():
         if st.button("🔄 Reset History (clear file & session)", key="reset_history_from_empty"):
             if reset_history():
                 st.success("History reset.")
-                st.experimental_rerun()
+                st.rerun()
         return
 
     # Export & reset options
@@ -681,7 +681,7 @@ def history_page():
         if st.button("🗑️ Reset History (clear file & session)", key="reset_history_confirm"):
             if reset_history():
                 st.success("All history cleared!")
-                st.experimental_rerun()
+                st.rerun()
 
     # Display history table (recent)
     st.subheader("📋 Recent Calculations")
@@ -833,7 +833,7 @@ def settings_page():
         if st.button("⚠️ Reset History (clear file + session)", type="secondary", key="clear_file_and_session"):
             if reset_history():
                 st.success("All history cleared (file removed).")
-                st.experimental_rerun()
+                st.rerun()
 
     st.subheader("ℹ️ About This App")
     compound_name = st.session_state.settings['compound_name']
@@ -929,12 +929,12 @@ def customization_page():
             if len(settings['occupants']) > 1:
                 if st.button("🗑️", key=f"delete_occupant_{i}"):
                     settings['occupants'].pop(i)
-                    st.experimental_rerun()
+                    st.rerun()
         with col4:
             if i == len(settings['occupants']) - 1:
                 if st.button("➕", key="add_occupant"):
                     settings['occupants'].append({'name': f'Occupant {len(settings["occupants"]) + 1}', 'icon': '👤'})
-                    st.experimental_rerun()
+                    st.rerun()
 
     # Preset Themes
     st.subheader("🌈 Preset Themes")
@@ -972,7 +972,7 @@ def customization_page():
             if st.button(theme_name, key=f"theme_{i}"):
                 settings.update(theme_colors)
                 st.success(f"Applied {theme_name} theme!")
-                st.experimental_rerun()
+                st.rerun()
 
     # Save Settings
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -1041,7 +1041,7 @@ def customization_page():
                 if st.button("Apply Imported Settings", key="apply_imported_settings"):
                     st.session_state.settings.update(imported_settings)
                     st.success("✅ Settings imported and applied!")
-                    st.experimental_rerun()
+                    st.rerun()
             except Exception as e:
                 st.error(f"Error importing settings: {e}")
 
@@ -1072,4 +1072,5 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
