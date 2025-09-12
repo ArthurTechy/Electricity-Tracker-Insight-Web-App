@@ -416,6 +416,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             time_part = current_timestamp.split(' ', 1)[1]  # "12/9/25 1:45 pm"
             st.markdown(f"**📅 {date_part.title()}**<br>{time_part}", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
+        
     
     # Consumption charts
     st.subheader("📊 Consumption Breakdown Chart")
