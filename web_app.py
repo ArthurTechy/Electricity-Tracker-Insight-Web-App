@@ -361,7 +361,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     wat_tz = pytz.timezone('Africa/Lagos')  # WAT timezone
     
     # Get current time in WAT
-    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p").lower()
+    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
+    # Remove leading zeros and convert to lowercase
+    current_timestamp = current_timestamp.replace("/0", "/").replace(" 0", " ").lower()
     
     # Create summary data
     summary_data = {
@@ -379,7 +381,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Additional summary cards
     num_cards = len(occupants) + 3  # occupants + 3 summary cards
-    cols = st.columns(min(4, num_cards))  # Max 6 columns per row for better fit
+    cols = st.columns(min(6, num_cards))  # Max 6 columns per row for better fit
     
     col_idx = 0
     
@@ -405,14 +407,13 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         st.markdown('</div>', unsafe_allow_html=True)
         col_idx += 1
     
-    # Date card
-    if col_idx < 4:
-        with cols[col_idx % 4]:
+    # Date card - use more compact format
+    if col_idx < 6:
+        with cols[col_idx % 6]:
             st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-            # Split the timestamp
-            date_part = current_timestamp.split(',')[0]  # "fri"
-            time_part = current_timestamp.split(' ', 1)[1]  # "12/9/25 1:45 pm"
-            st.markdown(f"**📅 {date_part.title()}**<br>{time_part}", unsafe_allow_html=True)
+            # Use a more compact timestamp format
+            compact_timestamp = datetime.now(wat_tz).strftime("%d/%m %I:%M%p").replace("/0", "/").replace(" 0", " ").lower()
+            st.markdown(f"**📅 Calculated**<br>{compact_timestamp}", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         
     
@@ -523,6 +524,12 @@ def history_page():
     st.header("📈 Consumption History & Analytics")
     
     history = load_history()
+    
+    # Debug information
+    st.write(f"Debug: Session state keys: {list(st.session_state.keys())}")
+    st.write(f"Debug: History length: {len(history)}")
+    if history:
+        st.write(f"Debug: Last calculation timestamp: {history[-1].get('timestamp', 'No timestamp')}")
     
     if not history:
         st.info("No calculation history found. Please make some calculations first!")
@@ -978,5 +985,3 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
-
-
