@@ -671,7 +671,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                     x="Consumed (kWh)",
                     palette="Blues_d"
                 )
-                ax1.set_title("Consumption Breakdown", fontsize=13, weight="bold")
+                ax1.set_title("Consumption Breakdown_{datetime.now().strftime('%d-%m-%Y_%I:%M')}", fontsize=13, weight="bold")
                 ax1.set_xlabel("Consumption (kWh)")
                 ax1.set_ylabel("")
             
@@ -713,7 +713,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             st.download_button(
                 label="📷 Download Report JPEG",
                 data=jpeg_bytes,
-                file_name=f"{settings['compound_name']}_report_{datetime.now().strftime('%d-%m-%Y_%H%M')}.jpg",
+                file_name=f"{settings['compound_name']}_Electric_Consumption_report_{datetime.now().strftime('%d-%m-%Y_%I:%M')}.jpg",
                 mime="image/jpeg",
                 key="download_jpg"
             )
@@ -1155,6 +1155,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
