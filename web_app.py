@@ -377,9 +377,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     wat_tz = pytz.timezone('Africa/Lagos')  # WAT timezone
     
     # Get current time in WAT
-    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%y %I:%M%p")
-    # Remove leading zeros and convert to lowercase
-    current_timestamp = current_timestamp.replace("/0", "/").replace(" 0", " ").lower()
+    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
     
     # Create summary data
     summary_data = {
@@ -424,12 +422,6 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         col_idx += 1
     
     # Date card
-    # if col_idx < 4:
-    #     with cols[col_idx % 4]:
-    #         st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-    #         st.metric("📅 Calculated On", current_timestamp)
-    #         st.markdown('</div>', unsafe_allow_html=True)
-
     if col_idx < 4:
         with cols[col_idx % 4]:
             st.markdown('<div class="summary-card">', unsafe_allow_html=True)
@@ -989,6 +981,7 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
