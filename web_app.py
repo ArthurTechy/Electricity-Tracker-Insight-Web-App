@@ -648,14 +648,21 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         if df_summary is not None and not df_summary.empty:
             def export_summary_as_image(df):
                 fig, axes = plt.subplots(2, 1, figsize=(8, 10))
-    
-                # ✅ Plot chart using Name vs Consumption (kWh)
-                sns.barplot(ax=axes[0], data=df, x="Name", y="Consumption (kWh)", palette="Blues_d")
+            
+                # ✅ Plot chart using Occupant vs Consumed (kWh)
+                sns.barplot(
+                    ax=axes[0],
+                    data=df,
+                    x="Occupant",
+                    y="Consumed (kWh)",
+                    palette="Blues_d"
+                )
                 axes[0].set_title("Consumption Breakdown")
-                axes[0].set_ylabel("Consumption (kWh)")
+                axes[0].set_ylabel("Consumed (kWh)")
                 axes[0].set_xlabel("")
-    
-                # ✅ Table
+                axes[0].tick_params(axis="x", rotation=45)
+            
+                # Table
                 axes[1].axis("off")
                 table_data = df.round(2).values
                 col_labels = df.columns
@@ -665,9 +672,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                     cellLoc="center",
                     loc="center"
                 )
-    
+            
                 plt.tight_layout()
-    
+            
                 buf = io.BytesIO()
                 plt.savefig(buf, format="jpeg", dpi=200, bbox_inches="tight")
                 plt.close(fig)
@@ -1121,6 +1128,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
