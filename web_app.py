@@ -200,7 +200,7 @@ st.markdown(get_dynamic_css(), unsafe_allow_html=True)
 # Main app
 def main():
     settings = st.session_state.settings
-    st.markdown(f'<h1 class="main-header">⚡ {settings["compound_name"]} Electricity Tracker Insight</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h1 class="main-header">⚡ {settings["compound_name"]} Electricity Tracker</h1>', unsafe_allow_html=True)
     
     # Sidebar for navigation
     st.sidebar.title("🏠 Navigation")
@@ -217,7 +217,7 @@ def main():
 
 def calculation_page():
     settings = st.session_state.settings
-    st.header("📊 New Electricity Consumption Calculation")
+    st.header("📊 New Electricity Consumption Calculation & Insight")
     
     # Quick load from last reading
     col1, col2 = st.columns([3, 1])
@@ -970,4 +970,5 @@ if __name__ == "__main__":
     main()
 
 # Footer
+
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
