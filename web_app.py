@@ -5,9 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 import pytz
 import json
-import os
 import io
-import base64
 
 # Page configuration
 st.set_page_config(
@@ -17,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize session state for settings
+# Initialize session state for settings and history
 if 'settings' not in st.session_state:
     st.session_state.settings = {
         'rate_per_kwh': 250,
@@ -32,6 +30,9 @@ if 'settings' not in st.session_state:
         'compound_name': 'Owolawi Compound',
         'currency': '₦'
     }
+
+if 'consumption_history' not in st.session_state:
+    st.session_state.consumption_history = []
 
 # Dynamic CSS based on settings
 def get_dynamic_css():
@@ -90,45 +91,32 @@ def get_dynamic_css():
 </style>
 """
 
-# Data persistence functions
+# Data persistence functions - now using session state
 def load_history():
-    """Load consumption history from JSON file"""
-    if os.path.exists('consumption_history.json'):
-        try:
-            with open('consumption_history.json', 'r') as f:
-                return json.load(f)
-        except:
-            return []
-    return []
+    """Load consumption history from session state"""
+    return st.session_state.get('consumption_history', [])
 
 def save_history(history_data):
-    """Save consumption history to JSON file"""
+    """Save consumption history to session state"""
     try:
-        with open('consumption_history.json', 'w') as f:
-            json.dump(history_data, f, indent=2)
+        st.session_state.consumption_history = history_data
         return True
     except Exception as e:
         st.error(f"Error saving data: {e}")
         return False
 
 def load_settings():
-    """Load app settings from JSON file"""
-    if os.path.exists('app_settings.json'):
-        try:
-            with open('app_settings.json', 'r') as f:
-                saved_settings = json.load(f)
-                st.session_state.settings.update(saved_settings)
-        except Exception as e:
-            st.error(f"Error loading settings: {e}")
+    """Initialize default settings if not already in session state"""
+    # Settings are already initialized above, so this function is mainly for compatibility
+    pass
 
 def save_settings():
-    """Save app settings to JSON file"""
+    """Settings are automatically saved in session state"""
     try:
-        with open('app_settings.json', 'w') as f:
-            json.dump(st.session_state.settings, f, indent=2)
+        # Settings are already in st.session_state.settings
         return True
     except Exception as e:
-        st.error(f"Error saving settings: {e}")
+        st.error(f"Error with settings: {e}")
         return False
 
 def get_latest_readings():
@@ -190,10 +178,6 @@ def export_to_excel(history_data):
     
     output.seek(0)
     return output.getvalue()
-
-
-# Load settings on startup
-load_settings()
 
 # Apply dynamic CSS
 st.markdown(get_dynamic_css(), unsafe_allow_html=True)
@@ -378,6 +362,8 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Get current time in WAT
     current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
+    # Remove leading zeros and convert to lowercase
+    current_timestamp = current_timestamp.replace("/0", "/").replace(" 0", " ").lower()
     
     # Create summary data
     summary_data = {
@@ -395,19 +381,19 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Additional summary cards
     num_cards = len(occupants) + 3  # occupants + 3 summary cards
-    cols = st.columns(min(4, num_cards))  # Max 4 columns per row
+    cols = st.columns(min(6, num_cards))  # Max 6 columns per row for better fit
     
     col_idx = 0
     
     # Water pump card
-    with cols[col_idx % 4]:
+    with cols[col_idx % 6]:
         st.markdown('<div class="summary-card">', unsafe_allow_html=True)
         st.metric("💧 Water Pump Cost", f"{currency}{water_cost:,.0f}", f"{water_consumed:.1f} kWh")
         st.markdown('</div>', unsafe_allow_html=True)
         col_idx += 1
     
     # Total consumption card
-    with cols[col_idx % 4]:
+    with cols[col_idx % 6]:
         st.markdown('<div class="summary-card">', unsafe_allow_html=True)
         total_consumption = sum(consumptions.values()) + water_consumed
         st.metric("⚡ Total Consumption", f"{total_consumption:.1f} kWh")
@@ -415,20 +401,19 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         col_idx += 1
     
     # Total amount card
-    with cols[col_idx % 4]:
+    with cols[col_idx % 6]:
         st.markdown('<div class="summary-card">', unsafe_allow_html=True)
         st.metric("💰 Total Amount", f"{currency}{total_amount:,.0f}")
         st.markdown('</div>', unsafe_allow_html=True)
         col_idx += 1
     
-    # Date card
-    if col_idx < 4:
-        with cols[col_idx % 4]:
+    # Date card - use more compact format
+    if col_idx < 6:
+        with cols[col_idx % 6]:
             st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-            # Split the timestamp
-            date_part = current_timestamp.split(',')[0]  # "fri"
-            time_part = current_timestamp.split(' ', 1)[1]  # "12/9/25 1:45pm"
-            st.markdown(f"**📅 {date_part.title()}**<br>{time_part}", unsafe_allow_html=True)
+            # Use a more compact timestamp format
+            compact_timestamp = datetime.now(wat_tz).strftime("%d/%m %I:%M%p").replace("/0", "/").replace(" 0", " ").lower()
+            st.markdown(f"**📅 Calculated**<br>{compact_timestamp}", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         
     
@@ -532,7 +517,6 @@ def save_calculation(timestamp, initial_readings, final_readings,
     
     if save_history(history):
         st.success("✅ Calculation saved successfully!")
-        
     else:
         st.error("❌ Failed to save calculation")
 
@@ -735,6 +719,9 @@ def settings_page():
 
     with col3:
         if st.button("🗑️ Clear All History", type="secondary"):
+            st.session_state['confirm_clear'] = True
+        
+        if st.session_state.get('confirm_clear', False):
             st.warning("⚠️ This will permanently delete all history!")
             col1, col2 = st.columns(2)
             
@@ -742,10 +729,12 @@ def settings_page():
                 if st.button("✅ Confirm Delete", type="primary"):
                     if save_history([]):
                         st.success("All history cleared!")
+                        st.session_state['confirm_clear'] = False
                         st.rerun()
             
             with col2:
                 if st.button("❌ Cancel"):
+                    st.session_state['confirm_clear'] = False
                     st.rerun()
 
     
@@ -761,13 +750,15 @@ def settings_page():
     - Customize occupants, colors, and rates
     
     **Features:**
-    - 💾 Automatic data persistence
+    - 💾 Session-based data storage (persists during your browser session)
     - 📊 Interactive charts and analytics
     - 📱 Mobile-friendly design
     - 🔄 Quick loading from previous readings
     - 📈 Trend analysis
     - 📊 Excel export functionality
     - 🎨 Customizable interface
+    
+    **Note:** Data persists only during your browser session. Export your data before closing the browser.
     """)
 
 def customization_page():
@@ -987,15 +978,4 @@ if __name__ == "__main__":
     main()
 
 # Footer
-
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
