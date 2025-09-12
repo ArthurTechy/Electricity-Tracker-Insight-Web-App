@@ -379,7 +379,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Additional summary cards
     num_cards = len(occupants) + 3  # occupants + 3 summary cards
-    cols = st.columns(min(6, num_cards))  # Max 6 columns per row for better fit
+    cols = st.columns(min(4, num_cards))  # Max 6 columns per row for better fit
     
     col_idx = 0
     
@@ -983,4 +983,5 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
