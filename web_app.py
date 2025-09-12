@@ -377,7 +377,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     wat_tz = pytz.timezone('Africa/Lagos')  # WAT timezone
     
     # Get current time in WAT
-    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y   %I:%M %p")
+    current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
     
     # Create summary data
     summary_data = {
@@ -981,6 +981,7 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
