@@ -17,6 +17,7 @@ import os
 # -------------------------
 # Config / Constants
 # -------------------------
+
 HISTORY_FILENAME = "consumption_history.json"
 
 # Page configuration
@@ -122,6 +123,16 @@ def reset_history():
         st.error(f"Error clearing history file: {e}")
         return False
 
+# -------------------------
+# Initialize session state
+# -------------------------
+if "consumption_history" not in st.session_state:
+    st.session_state["consumption_history"] = []
+
+if "history_loaded_from_file" not in st.session_state:
+    load_history_from_file()
+    st.session_state["history_loaded_from_file"] = True
+    
 # -------------------------
 # Dynamic CSS based on settings
 # -------------------------
@@ -638,11 +649,13 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             def export_summary_as_image(df):
                 fig, axes = plt.subplots(2, 1, figsize=(8, 10))
     
-                # Plot chart
-                sns.lineplot(ax=axes[0], data=df, x=df.index, y=df.columns[1], marker="o")  
+                # ✅ Plot chart using Name vs Consumption (kWh)
+                sns.barplot(ax=axes[0], data=df, x="Name", y="Consumption (kWh)", palette="Blues_d")
                 axes[0].set_title("Consumption Breakdown")
+                axes[0].set_ylabel("Consumption (kWh)")
+                axes[0].set_xlabel("")
     
-                # Table
+                # ✅ Table
                 axes[1].axis("off")
                 table_data = df.round(2).values
                 col_labels = df.columns
@@ -670,6 +683,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 mime="image/jpeg",
                 key="download_jpg"
             )
+    
 
 def history_page():
     st.header("📈 Consumption History & Analytics")
@@ -1107,6 +1121,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
