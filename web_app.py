@@ -17,8 +17,6 @@ import os
 # Config / Constants
 # -------------------------
 HISTORY_FILENAME = "consumption_history.json"
-# Ensure kaleido is used for plotly image export (kaleido must be available in the environment)
-pio.kaleido.scope.default_format = "png"
 
 # Page configuration
 st.set_page_config(
@@ -1074,3 +1072,4 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
