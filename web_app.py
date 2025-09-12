@@ -540,7 +540,14 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             key = f"occupant_{i}"
             final_text += f"- {occupant['name']}: {currency}{costs[key]:,.0f} + {currency}{water_cost_per_person:,.0f} = **{currency}{total_costs[key]:,.0f}**\n"
 
-        st.markdown(consumption_text + cost_text + water_text + final_text)
+        # ✅ Build breakdown string for both UI + export
+        breakdown_text = consumption_text + cost_text + water_text + final_text
+
+        # Show in app
+        st.markdown(breakdown_text)
+
+        # Save into session so JPEG export can reuse
+        st.session_state["breakdown_text"] = breakdown_text
 
     # Summary table & timestamp
     st.subheader("📊 Final Summary")
@@ -646,29 +653,41 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     with col3:
         # Allow download of a combined JPEG (table + chart)
         if df_summary is not None and not df_summary.empty:
-            def export_summary_as_image(df):
-                fig, axes = plt.subplots(2, 1, figsize=(8, 10))
+            def export_summary_as_image(df, breakdown_text):
+                fig = plt.figure(figsize=(9, 12))
+                gs = fig.add_gridspec(3, 1, height_ratios=[1.2, 1.2, 2.5])
             
-                # ✅ Plot chart using Occupant vs Consumed (kWh)
-                sns.barplot(
-                    ax=axes[0],
+                # 1. Horizontal bar chart
+                ax1 = fig.add_subplot(gs[0])
+                bars = sns.barplot(
+                    ax=ax1,
                     data=df,
-                    x="Occupant",
-                    y="Consumed (kWh)",
+                    y="Occupant",
+                    x="Consumed (kWh)",
                     palette="Blues_d"
                 )
-                axes[0].set_title("Consumption Breakdown")
-                axes[0].set_ylabel("Consumed (kWh)")
-                axes[0].set_xlabel("")
-                axes[0].tick_params(axis="x", rotation=45)
+                ax1.set_title("Consumption Breakdown", fontsize=12, weight="bold")
+                ax1.set_xlabel("Consumption (kWh)")
+                ax1.set_ylabel("")
             
-                # Table
-                axes[1].axis("off")
-                table_data = df.round(2).values
-                col_labels = df.columns
-                axes[1].table(
-                    cellText=table_data,
-                    colLabels=col_labels,
+                # Data labels
+                for bar in bars.patches:
+                    width = bar.get_width()
+                    ax1.text(width + 0.01, bar.get_y() + bar.get_height()/2,
+                             f"{width:.2f}", va="center", fontsize=9)
+            
+                # 2. Detailed breakdown text
+                ax2 = fig.add_subplot(gs[1])
+                ax2.axis("off")
+                ax2.text(0, 1, breakdown_text, ha="left", va="top",
+                         fontsize=9, family="monospace")
+            
+                # 3. Summary table
+                ax3 = fig.add_subplot(gs[2])
+                ax3.axis("off")
+                ax3.table(
+                    cellText=df.values,
+                    colLabels=df.columns,
                     cellLoc="center",
                     loc="center"
                 )
@@ -680,8 +699,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 plt.close(fig)
                 buf.seek(0)
                 return buf.getvalue()
+
     
-            jpeg_bytes = export_summary_as_image(df_summary)
+            jpeg_bytes = export_summary_as_image(df_summary, st.session_state["breakdown_text"])
     
             st.download_button(
                 label="📷 Download Report JPEG",
@@ -1128,6 +1148,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
