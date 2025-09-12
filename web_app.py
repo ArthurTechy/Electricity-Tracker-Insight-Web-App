@@ -94,12 +94,14 @@ def get_dynamic_css():
 # Data persistence functions - now using session state
 def load_history():
     """Load consumption history from session state"""
-    return st.session_state.get('consumption_history', [])
+    if 'consumption_history' not in st.session_state:
+        st.session_state.consumption_history = []
+    return st.session_state.consumption_history
 
 def save_history(history_data):
     """Save consumption history to session state"""
     try:
-        st.session_state.consumption_history = history_data
+        st.session_state.consumption_history = history_data.copy()  # Make a copy to ensure it's saved
         return True
     except Exception as e:
         st.error(f"Error saving data: {e}")
@@ -983,5 +985,3 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
-
-
