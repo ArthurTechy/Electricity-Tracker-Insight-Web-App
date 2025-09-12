@@ -732,14 +732,22 @@ def settings_page():
                     )
             else:
                 st.warning("No history to export!")
-    
+
     with col3:
-        if st.button("🗑️ Clear All History", type="secondary"):
-            if st.checkbox("I confirm I want to delete all history"):
+    if st.button("🗑️ Clear All History", type="secondary"):
+        st.warning("⚠️ This will permanently delete all history!")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("✅ Confirm Delete", type="primary"):
                 if save_history([]):
                     st.success("All history cleared!")
-                    st.experimental_rerun()
-    
+                    st.rerun()
+        
+        with col2:
+            if st.button("❌ Cancel"):
+                st.rerun()
+
     
     st.subheader("ℹ️ About This App")
     compound_name = st.session_state.settings['compound_name']
@@ -840,13 +848,13 @@ def customization_page():
             if len(settings['occupants']) > 1:
                 if st.button("🗑️", key=f"delete_occupant_{i}"):
                     settings['occupants'].pop(i)
-                    st.experimental_rerun()
+                    st.rerun()
         
         with col4:
             if i == len(settings['occupants']) - 1:  # Last row
                 if st.button("➕", key=f"add_occupant"):
                     settings['occupants'].append({'name': f'Occupant {len(settings["occupants"]) + 1}', 'icon': '👤'})
-                    st.experimental_rerun()
+                    st.rerun()
     
     # Preset Themes
     st.subheader("🌈 Preset Themes")
@@ -886,7 +894,7 @@ def customization_page():
             if st.button(theme_name, key=f"theme_{i}"):
                 settings.update(theme_colors)
                 st.success(f"Applied {theme_name} theme!")
-                st.experimental_rerun()
+                st.rerun()
     
     # Save Settings
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -969,7 +977,7 @@ def customization_page():
                     st.session_state.settings.update(imported_settings)
                     if save_settings():
                         st.success("✅ Settings imported and applied!")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("❌ Failed to save imported settings")
             except Exception as e:
@@ -981,6 +989,7 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
