@@ -371,8 +371,11 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     
     # Summary table
     st.subheader("📊 Final Summary")
-    
-    current_timestamp = datetime.now().strftime("%a, %d/%m/%Y")
+
+    # Formated current_timestamp
+    current_timestamp = datetime.now().strftime("%a, %d/%m/%y %I:%M%p")
+    # Remove leading zeros and convert to lowercase
+    current_timestamp = current_timestamp.replace("/0", "/").replace(" 0", " ").lower()
     
     # Create summary data
     summary_data = {
@@ -972,5 +975,6 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
