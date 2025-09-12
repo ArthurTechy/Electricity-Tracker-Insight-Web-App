@@ -734,19 +734,19 @@ def settings_page():
                 st.warning("No history to export!")
 
     with col3:
-    if st.button("🗑️ Clear All History", type="secondary"):
-        st.warning("⚠️ This will permanently delete all history!")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("✅ Confirm Delete", type="primary"):
-                if save_history([]):
-                    st.success("All history cleared!")
+        if st.button("🗑️ Clear All History", type="secondary"):
+            st.warning("⚠️ This will permanently delete all history!")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("✅ Confirm Delete", type="primary"):
+                    if save_history([]):
+                        st.success("All history cleared!")
+                        st.rerun()
+            
+            with col2:
+                if st.button("❌ Cancel"):
                     st.rerun()
-        
-        with col2:
-            if st.button("❌ Cancel"):
-                st.rerun()
 
     
     st.subheader("ℹ️ About This App")
@@ -989,6 +989,7 @@ if __name__ == "__main__":
 # Footer
 
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
