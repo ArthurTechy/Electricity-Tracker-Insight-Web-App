@@ -1,4 +1,4 @@
-# ⚡ Owolawi Compound Electricity Tracker
+# ⚡ Owolawi Compound Electricity Tracker Insight
 
 A transparent, user-friendly web application for fair electricity bill calculation among multiple occupants.
 
@@ -35,7 +35,7 @@ App Link: [Click here]()
 
 ## ✅ Solution
 
-**Introducing the Electricity Tracker Web App** - A comprehensive digital solution that transforms complex billing calculations into a seamless, transparent process.
+**Introducing the Electricity Tracker Insight Web App** - A comprehensive digital solution that transforms complex billing calculations into a seamless, transparent process.
 
 ### Key Features:
 - 🧮 **Automated Calculations**: Instant, accurate bill computation
@@ -44,7 +44,7 @@ App Link: [Click here]()
 - 📈 **Historical Analytics**: Track consumption patterns over time
 - 📱 **Mobile-Friendly Interface**: Access from any device
 - 🎨 **Customizable Settings**: Adapt to different compounds
-- 📊 **Excel Export**: Professional reporting capabilities 
+- 📊 **Excel & JSON Export**: Professional reporting capabilities 
 
 ---
 
