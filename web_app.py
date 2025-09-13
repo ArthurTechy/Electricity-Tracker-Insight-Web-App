@@ -31,9 +31,12 @@ st.set_page_config(
 # Google Sheets setup
 # -------------------------
 # Define scope
-scope = ["https://www.googleapis.com/auth/spreadsheets"]
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"  # This was missing!
+]
 
-# Try to load credentials from secrets and authorize gspread client
+# trying loading credentials from secrets and authorize gspread client
 sheet = None
 client = None
 try:
@@ -43,13 +46,16 @@ try:
     client = gspread.authorize(creds)
     SHEET_NAME = "ElectricityConsumption"
     sheet = client.open(SHEET_NAME).sheet1
+    
+    st.success("✅ Successfully connected to Google Sheets!")
+    
 except Exception as e:
-    # Show helpful error to the user; many failures will be credentials / sheet name related
+    # helpful error message to the user
     st.error(
         "Error connecting to Google Sheets. Check your service account credentials in Streamlit Secrets and ensure the sheet "
-        f"named '{'ElectricityConsumption'}' exists and is shared with the service account email.\n\nDetails: " + str(e)
+        f"named '{SHEET_NAME}' exists and is shared with the service account email.\n\nDetails: " + str(e)
     )
-
+    
 # -------------------------
 # Config / Constants
 # -------------------------
@@ -1251,4 +1257,5 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
