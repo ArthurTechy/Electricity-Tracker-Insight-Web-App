@@ -329,7 +329,7 @@ def create_combined_image(df_summary, fig_pie, fig_bar, settings):
             font = ImageFont.truetype("arial.ttf", 14)
         except Exception:
             font = ImageFont.load_default()
-        footer_text = f"Designed by {settings.get('compound_name', '')} - Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        footer_text = f"Designed by {settings.get('compound_name', '')} - Generated: {datetime.now(wat_tz).strftime('%d-%m-%Y %I:%M')}"
         text_w, text_h = draw.textsize(footer_text, font=font)
         draw.text(((final_width - text_w) // 2, top_combined.height + spacing + table_img.height + (spacing // 2)),
                   footer_text, fill=(80, 80, 80), font=font)
@@ -549,8 +549,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         # Show in app
         st.markdown(breakdown_text)
 
-        # Save into session so JPEG export can reuse
-        st.session_state["breakdown_text"] = breakdown_text
+        # Save into session (plain text for JPEG export)
+        plain_text = re.sub(r"\*\*(.*?)\*\*", r"\1", breakdown_text)
+        st.session_state["breakdown_text"] = plain_text
         
     # Summary table & timestamp
     st.subheader("📊 Final Summary")
@@ -1158,6 +1159,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
