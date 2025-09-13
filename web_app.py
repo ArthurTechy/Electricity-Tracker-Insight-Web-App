@@ -20,6 +20,9 @@ import os
 
 HISTORY_FILENAME = "consumption_history.json"
 
+# local time
+wat_tz = pytz.timezone('Africa/Lagos')
+
 # Page configuration
 st.set_page_config(
     page_title="Owolawi Compound - Electricity Tracker",
@@ -549,11 +552,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
         # Save into session so JPEG export can reuse
         st.session_state["breakdown_text"] = breakdown_text
         
-# local time
-wat_tz = pytz.timezone('Africa/Lagos')
     # Summary table & timestamp
     st.subheader("📊 Final Summary")
-    
+
     current_timestamp = datetime.now(wat_tz).strftime("%a, %d/%m/%Y %I:%M %p")
 
     summary_data = {
@@ -1157,6 +1158,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
