@@ -665,7 +665,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                         df[col] = df[col].astype(float).round(1)
             
                 fig = plt.figure(figsize=(9, 14))  # Taller canvas for better spacing
-                gs = fig.add_gridspec(3, 1, height_ratios=[1.2, 5, 2.5])  # allocate more space for breakdown + table
+                gs = fig.add_gridspec(3, 1, height_ratios=[1.5, 2, 2.5])  # allocate more space for breakdown + table
             
                 # 1. Horizontal bar chart
                 ax1 = fig.add_subplot(gs[0])
@@ -1160,6 +1160,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
