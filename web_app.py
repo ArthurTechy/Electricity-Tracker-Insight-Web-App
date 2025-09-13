@@ -570,7 +570,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     }
 
     df_summary = pd.DataFrame(summary_data)
-    st.dataframe(df_summary, width=stretch)
+    st.dataframe(df_summary, width='stretch')
 
     # Summary cards
     num_cards = len(occupants) + 3
@@ -628,9 +628,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.plotly_chart(fig_pie, width=stretch)
+        st.plotly_chart(fig_pie, width='stretch')
     with col2:
-        st.plotly_chart(fig_bar, width=stretch)
+        st.plotly_chart(fig_bar, width='stretch')
 
     # Save / Export operations
     col1, col2, col3 = st.columns([1, 1, 1])
@@ -812,7 +812,7 @@ def history_page():
                 display_df = display_df.rename(columns=rename_dict)
                 
                 # Show most recent first
-                st.dataframe(display_df.iloc[::-1], width=stretch)
+                st.dataframe(display_df.iloc[::-1], width='stretch')
                 
             except Exception as e:
                 st.error(f"Error displaying history table: {e}")
@@ -883,7 +883,7 @@ def history_page():
                     yaxis_title="Consumption (kWh)",
                     hovermode='x'
                 )
-                st.plotly_chart(fig_line, width=stretch)
+                st.plotly_chart(fig_line, width='stretch')
 
                 # Cost trends
                 fig_cost = go.Figure()
@@ -909,7 +909,7 @@ def history_page():
                     yaxis_title=f"Cost ({st.session_state.settings['currency']})",
                     hovermode='x'
                 )
-                st.plotly_chart(fig_cost, width=stretch)
+                st.plotly_chart(fig_cost, width='stretch')
             else:
                 st.warning("Unable to parse dates for trend analysis.")
 
@@ -1263,4 +1263,5 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
