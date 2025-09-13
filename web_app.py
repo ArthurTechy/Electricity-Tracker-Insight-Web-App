@@ -674,7 +674,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                     x="Consumed (kWh)",
                     palette="Blues_d"
                 )
-                ax1.set_title(f"Consumption Breakdown {datetime.now(wat_tz).strftime('%d-%m-%Y %I:%M %p')}", fontsize=13, weight="bold"')
+                ax1.set_title(f"Consumption Breakdown {datetime.now(wat_tz).strftime('%d-%m-%Y %I:%M %p')}", fontsize=13, weight="bold")
                 ax1.set_xlabel("Consumption (kWh)")
                 ax1.set_ylabel("")
             
@@ -1158,6 +1158,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
