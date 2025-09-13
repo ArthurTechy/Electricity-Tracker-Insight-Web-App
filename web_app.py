@@ -7,6 +7,7 @@ from datetime import datetime
 import pytz
 import json
 import io
+import re
 from PIL import Image
 import matplotlib
 matplotlib.use("Agg")
@@ -1159,6 +1160,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
