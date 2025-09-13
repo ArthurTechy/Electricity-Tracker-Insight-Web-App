@@ -33,7 +33,7 @@ st.set_page_config(
 # Define scope
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"  # This was missing!
+    "https://www.googleapis.com/auth/drive"
 ]
 
 # trying loading credentials from secrets and authorize gspread client
@@ -47,10 +47,7 @@ try:
     SHEET_NAME = "ElectricityConsumption"
     sheet = client.open(SHEET_NAME).sheet1
     
-    st.success("✅ Successfully connected to Google Sheets!")
-    
 except Exception as e:
-    # helpful error message to the user
     st.error(
         "Error connecting to Google Sheets. Check your service account credentials in Streamlit Secrets and ensure the sheet "
         f"named '{SHEET_NAME}' exists and is shared with the service account email.\n\nDetails: " + str(e)
@@ -59,7 +56,6 @@ except Exception as e:
 # -------------------------
 # Config / Constants
 # -------------------------
-# local time
 wat_tz = pytz.timezone('Africa/Lagos')
 
 # -------------------------
@@ -81,98 +77,153 @@ if 'settings' not in st.session_state:
     }
 
 # -------------------------
-# Utilities: persistence
+# Utilities: persistence with improved error handling
 # -------------------------
 
-# --- robust create_calculation_data ---
-def create_calculation_data(timestamp, initial_readings, final_readings,
-                            consumptions, costs, total_costs, water_consumed,
-                            water_cost, rate, total_amount):
-    """Create calculation data dictionary (robust to missing keys)."""
-    data = {
-        'timestamp': timestamp,
-        'timestamp_iso': datetime.now(wat_tz).isoformat(),
-        'water_consumed': water_consumed,
-        'water_cost': water_cost,
-        'rate_per_kwh': rate,
-        'total_amount': total_amount
-    }
-
-    occupants = st.session_state.get('settings', {}).get('occupants', [])
-    for i, occupant in enumerate(occupants):
-        key = f"occupant_{i}"
-        # use .get to avoid KeyError for placeholder dicts
-        data[f'{key}_initial'] = initial_readings.get(key, 0)
-        data[f'{key}_final'] = final_readings.get(key, 0)
-        data[f'{key}_consumed'] = consumptions.get(key, 0)
-        data[f'{key}_total'] = total_costs.get(key, 0)
-
-    # ensure water keys exist (use .get to be safe)
-    data['water_initial'] = initial_readings.get('water', 0)
-    data['water_final'] = final_readings.get('water', 0)
-
-    return data
-
-# --- helper to build consistent sheet headers ---
 def get_sheet_headers():
     """Return a consistent list of headers for the sheet based on current occupants."""
     occupants = st.session_state.get('settings', {}).get('occupants', [])
-    n = len(occupants)
-    # placeholders must include 'water'
-    initial = {f"occupant_{i}": 0 for i in range(n)}
-    initial['water'] = 0
-    final = initial.copy()
-    consumptions = initial.copy()
-    costs = initial.copy()
-    totals = initial.copy()
-    headers = list(create_calculation_data(
-        "timestamp", initial, final, consumptions, costs, totals,
-        0, 0, st.session_state.get('settings', {}).get('rate_per_kwh', 0), 0
-    ).keys())
+    headers = [
+        'timestamp',
+        'timestamp_iso',
+        'water_consumed',
+        'water_cost', 
+        'rate_per_kwh',
+        'total_amount',
+        'water_initial',
+        'water_final'
+    ]
+    
+    # Add occupant-specific columns
+    for i in range(len(occupants)):
+        headers.extend([
+            f'occupant_{i}_initial',
+            f'occupant_{i}_final', 
+            f'occupant_{i}_consumed',
+            f'occupant_{i}_total'
+        ])
+    
     return headers
 
-# -------------------------
-# Export helpers
-# -------------------------
+def create_calculation_data(timestamp, initial_readings, final_readings,
+                            consumptions, costs, total_costs, water_consumed,
+                            water_cost, rate, total_amount):
+    """Create calculation data dictionary with proper defaults."""
+    data = {
+        'timestamp': timestamp,
+        'timestamp_iso': datetime.now(wat_tz).isoformat(),
+        'water_consumed': float(water_consumed) if water_consumed is not None else 0.0,
+        'water_cost': float(water_cost) if water_cost is not None else 0.0,
+        'rate_per_kwh': float(rate) if rate is not None else 0.0,
+        'total_amount': float(total_amount) if total_amount is not None else 0.0,
+        'water_initial': float(initial_readings.get('water', 0)),
+        'water_final': float(final_readings.get('water', 0))
+    }
 
-def export_to_json(df: pd.DataFrame) -> str:
-    """Export DataFrame to formatted JSON string with pretty indentation."""
-    if df.empty:
-        return "[]"
-    df = _coerce_history_numeric(df)
-    records = df.to_dict(orient="records")
-    return json.dumps(records, indent=2, ensure_ascii=False)    
+    occupants = st.session_state.get('settings', {}).get('occupants', [])
+    for i in range(len(occupants)):
+        key = f"occupant_{i}"
+        data[f'{key}_initial'] = float(initial_readings.get(key, 0))
+        data[f'{key}_final'] = float(final_readings.get(key, 0))
+        data[f'{key}_consumed'] = float(consumptions.get(key, 0))
+        data[f'{key}_total'] = float(total_costs.get(key, 0))
+
+    return data
 
 def load_history():
-    """Load all history records from Google Sheets into a list of dicts."""
+    """Load all history records from Google Sheets with improved error handling."""
     if sheet is None:
         return []
     try:
-        records = sheet.get_all_records()
-        return records if records else []
+        all_values = sheet.get_all_values()
+        if not all_values or len(all_values) < 2:  # No data or only headers
+            return []
+        
+        headers = all_values[0]
+        data_rows = all_values[1:]
+        
+        # Convert to list of dictionaries
+        records = []
+        for row in data_rows:
+            # Ensure row has same length as headers
+            while len(row) < len(headers):
+                row.append("")
+            
+            record = {}
+            for i, header in enumerate(headers):
+                value = row[i] if i < len(row) else ""
+                # Try to convert numeric values
+                if value and str(value).replace('.', '').replace('-', '').isdigit():
+                    try:
+                        record[header] = float(value)
+                    except ValueError:
+                        record[header] = value
+                else:
+                    record[header] = value
+            records.append(record)
+        
+        return records
+        
     except Exception as e:
         st.error(f"Error loading history from Google Sheets: {e}")
         return []
 
-def save_history(history_data):
-    """Overwrite Google Sheet with full history (not used often)."""
+def save_calculation(timestamp, initial_readings, final_readings,
+                     consumptions, costs, total_costs, water_consumed,
+                     water_cost, rate, total_amount):
+    """Save a single calculation as a new row in Google Sheets."""
     if sheet is None:
-        st.error("Google Sheet not initialized. Cannot save history.")
-        return False
+        st.error("Google Sheet not initialized. Cannot save calculation.")
+        return
+
     try:
-        sheet.clear()
-        if not history_data:
-            return True
-        # Use the canonical headers for this app
+        calculation_data = create_calculation_data(
+            timestamp, initial_readings, final_readings,
+            consumptions, costs, total_costs, water_consumed,
+            water_cost, rate, total_amount
+        )
+
         headers = get_sheet_headers()
-        sheet.append_row(headers)
-        for record in history_data:
-            row = [record.get(h, "") for h in headers]
-            sheet.append_row(row)
-        return True
+        
+        # Check if sheet has headers
+        try:
+            existing_values = sheet.get_all_values()
+            if not existing_values:
+                # Sheet is empty, add headers
+                sheet.append_row(headers)
+            else:
+                # Check if first row matches our headers
+                current_headers = existing_values[0] if existing_values else []
+                if current_headers != headers:
+                    st.warning("Schema mismatch detected. Updating sheet headers...")
+                    # Clear and reinitialize with correct headers
+                    sheet.clear()
+                    sheet.append_row(headers)
+                    
+        except Exception as header_error:
+            st.warning(f"Header check failed: {header_error}. Attempting to add headers...")
+            sheet.append_row(headers)
+
+        # Build row in header order
+        row = []
+        for header in headers:
+            value = calculation_data.get(header, "")
+            # Format numbers properly
+            if isinstance(value, (int, float)):
+                row.append(round(value, 2))
+            else:
+                row.append(str(value))
+
+        sheet.append_row(row)
+        st.success("✅ Calculation saved to Google Sheets!")
+        
+        # Update session state
+        if "consumption_history" not in st.session_state:
+            st.session_state["consumption_history"] = []
+        st.session_state["consumption_history"].append(calculation_data)
+        
     except Exception as e:
-        st.error(f"Error saving history to Google Sheets: {e}")
-        return False
+        st.error(f"❌ Failed to save calculation: {e}")
 
 def reset_history():
     """Clear all history from Google Sheets and session state."""
@@ -196,19 +247,107 @@ if "consumption_history" not in st.session_state:
     st.session_state["consumption_history"] = load_history()
 
 # -------------------------
-# Initialize sheet headers if empty
+# Export helpers
 # -------------------------
-def init_sheet():
-    """Ensure the Google Sheet has headers (called at startup)."""
-    if sheet is None:
-        return
+def export_to_json(df: pd.DataFrame) -> str:
+    """Export DataFrame to formatted JSON string."""
+    if df.empty:
+        return "[]"
+    df = _coerce_history_numeric(df)
+    records = df.to_dict(orient="records")
+    return json.dumps(records, indent=2, ensure_ascii=False, default=str)
+
+def export_to_excel(df: pd.DataFrame) -> bytes:
+    """Export DataFrame to Excel format (bytes)."""
+    if df.empty:
+        return None
+
+    df = _coerce_history_numeric(df)
+    output = io.BytesIO()
     try:
-        vals = sheet.get_all_values()
-        if not vals or len(vals) == 0 or (len(vals) == 1 and all([str(x).strip() == "" for x in vals[0]])):
-            headers = get_sheet_headers()
-            sheet.append_row(headers)
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Consumption History', index=False)
+
+            # Add summary sheet if we have the required columns
+            summary_data = []
+            occupants = st.session_state.settings['occupants']
+
+            for i, occupant in enumerate(occupants):
+                consumed_col = f"occupant_{i}_consumed"
+                total_col = f"occupant_{i}_total"
+
+                if consumed_col in df.columns and total_col in df.columns:
+                    consumed_data = pd.to_numeric(df[consumed_col], errors='coerce').dropna()
+                    total_data = pd.to_numeric(df[total_col], errors='coerce').dropna()
+                    
+                    if len(consumed_data) > 0 and len(total_data) > 0:
+                        summary_data.append({
+                            'Occupant': occupant['name'],
+                            'Average Consumption (kWh)': round(consumed_data.mean(), 2),
+                            'Average Cost': round(total_data.mean(), 2),
+                            'Total Consumption (kWh)': round(consumed_data.sum(), 2),
+                            'Total Cost': round(total_data.sum(), 2)
+                        })
+
+            if summary_data:
+                summary_df = pd.DataFrame(summary_data)
+                summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+        output.seek(0)
+        return output.getvalue()
     except Exception as e:
-        st.warning(f"Could not initialize sheet headers: {e}")
+        st.error(f"Error exporting to Excel: {e}")
+        return None
+
+def _coerce_history_numeric(df: pd.DataFrame, threshold: float = 0.7) -> pd.DataFrame:
+    """Convert columns to numeric if most values look numeric."""
+    if df.empty:
+        return df
+        
+    for col in df.columns:
+        if col in ['timestamp', 'timestamp_iso']:
+            continue  # Skip timestamp columns
+            
+        non_null = df[col].dropna().astype(str)
+        if len(non_null) == 0:
+            continue
+            
+        # Check if values look numeric
+        numeric_pattern = r'^-?\d*\.?\d+$'
+        numeric_like = non_null.str.match(numeric_pattern, na=False)
+        
+        if numeric_like.mean() >= threshold:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+def get_latest_readings():
+    """Get the latest readings from history with proper error handling."""
+    history = load_history()
+    if not history:
+        # Return default values
+        result = {'water_final': 0.0}
+        for i, occupant in enumerate(st.session_state.settings['occupants']):
+            result[f"occupant_{i}_final"] = 0.0
+        return result
+        
+    try:
+        df_history = pd.DataFrame(history)
+        df_history = _coerce_history_numeric(df_history)
+        latest = df_history.iloc[-1].to_dict()
+        
+        result = {}
+        for i, occupant in enumerate(st.session_state.settings['occupants']):
+            key = f"occupant_{i}_final"
+            result[key] = float(latest.get(key, 0)) if latest.get(key) is not None else 0.0
+        result['water_final'] = float(latest.get('water_final', 0)) if latest.get('water_final') is not None else 0.0
+        return result
+        
+    except Exception as e:
+        st.warning(f"Error getting latest readings: {e}")
+        result = {'water_final': 0.0}
+        for i, occupant in enumerate(st.session_state.settings['occupants']):
+            result[f"occupant_{i}_final"] = 0.0
+        return result
 
 # -------------------------
 # Dynamic CSS based on settings
@@ -270,214 +409,6 @@ def get_dynamic_css():
 """
 
 st.markdown(get_dynamic_css(), unsafe_allow_html=True)
-
-# -------------------------
-# Helpers for calculations / latest readings
-# -------------------------
-def get_latest_readings():
-    """Get the latest readings from history (final readings) with numeric coercion."""
-    history = load_history()
-    if history:
-        df_history = pd.DataFrame(history)
-        df_history = _coerce_history_numeric(df_history)
-        latest = df_history.iloc[-1].to_dict()
-        result = {}
-        for i, occupant in enumerate(st.session_state.settings['occupants']):
-            key = f"occupant_{i}_final"
-            result[key] = float(latest.get(key, 0)) if latest.get(key) is not None else 0.0
-        result['water_final'] = float(latest.get('water_final', 0)) if latest.get('water_final') is not None else 0.0
-        return result
-
-    # Defaults if no history
-    result = {}
-    for i, occupant in enumerate(st.session_state.settings['occupants']):
-        result[f"occupant_{i}_final"] = 0.0
-    result['water_final'] = 0.0
-    return result
-
-# Helper to convert Google Sheet string values to numeric before calculations/plots
-def _coerce_history_numeric(df: pd.DataFrame, threshold: float = 0.7) -> pd.DataFrame:
-    """
-    Convert columns to numeric if most values look numeric (default 70%).
-    """
-    for col in df.columns:
-        non_null = df[col].dropna().astype(str)
-        numeric_like = non_null.str.match(r"^-?\d+(\.\d+)?$")
-        if len(non_null) > 0 and (numeric_like.mean() >= threshold):
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-    return df
-
-# -------------------------
-# Export helpers: Excel (existing) and combined image (new)
-# -------------------------
-def export_to_excel(df: pd.DataFrame) -> bytes:
-    """
-    Export DataFrame to Excel format (bytes).
-    Includes raw history and summary sheet.
-    """
-    if df.empty:
-        return None
-
-    df = _coerce_history_numeric(df)
-    output = io.BytesIO()
-    try:
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Consumption History', index=False)
-
-            # Add summary sheet
-            summary_data = []
-            occupants = st.session_state.settings['occupants']
-
-            for i, occupant in enumerate(occupants):
-                consumed_col = f"occupant_{i}_consumed"
-                total_col = f"occupant_{i}_total"
-
-                if consumed_col in df.columns and total_col in df.columns:
-                    avg_consumption = df[consumed_col].mean()
-                    avg_cost = df[total_col].mean()
-                    total_consumption = df[consumed_col].sum()
-                    total_cost = df[total_col].sum()
-
-                    summary_data.append({
-                        'Occupant': occupant['name'],
-                        'Average Consumption (kWh)': round(avg_consumption, 2),
-                        'Average Cost': round(avg_cost, 2),
-                        'Total Consumption (kWh)': round(total_consumption, 2),
-                        'Total Cost': round(total_cost, 2)
-                    })
-
-            if summary_data:
-                summary_df = pd.DataFrame(summary_data)
-                summary_df.to_excel(writer, sheet_name='Summary', index=False)
-
-        output.seek(0)
-        return output.getvalue()
-    except Exception as e:
-        st.error(f"Error exporting to Excel: {e}")
-        return None
-
-def create_combined_image(df_summary, fig_pie, fig_bar, settings):
-    """
-    Create a single image (JPEG) combining:
-    - pie chart image (plotly png)
-    - bar chart image (plotly png)
-    - summary table image (matplotlib table)
-    - footer credit
-    Returns bytes (JPEG).
-    """
-    try:
-        # Create PNG images from plotly figures
-        pie_png = pio.to_image(fig_pie, format="png", scale=2)  # bytes
-        bar_png = pio.to_image(fig_bar, format="png", scale=2)
-
-        pie_img = Image.open(io.BytesIO(pie_png)).convert("RGB")
-        bar_img = Image.open(io.BytesIO(bar_png)).convert("RGB")
-
-        # Create table image using matplotlib
-        fig, ax = plt.subplots(figsize=(8, max(1.5, len(df_summary) * 0.5 + 1)))
-        ax.axis('off')
-        # build table
-        table = ax.table(cellText=df_summary.values,
-                         colLabels=df_summary.columns,
-                         cellLoc='center',
-                         loc='center')
-        table.auto_set_font_size(False)
-        table.set_fontsize(10)
-        table.scale(1, 1.2)
-        plt.tight_layout()
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', dpi=150)
-        plt.close(fig)
-        buf.seek(0)
-        table_img = Image.open(buf).convert("RGB")
-
-        # Determine final width = max widths
-        width = max(pie_img.width + bar_img.width, table_img.width)
-        # We'll stack pie+bar horizontally on top, table below, and footer at bottom
-        # First create top combined (pie + bar side-by-side)
-        top_height = max(pie_img.height, bar_img.height)
-        top_combined = Image.new("RGB", (pie_img.width + bar_img.width, top_height), color="white")
-        top_combined.paste(pie_img, (0, 0))
-        top_combined.paste(bar_img, (pie_img.width, 0))
-
-        # Final image height
-        spacing = 20
-        footer_height = 40
-        final_width = max(top_combined.width, table_img.width)
-        final_height = top_combined.height + spacing + table_img.height + spacing + footer_height
-
-        final_img = Image.new("RGB", (final_width, final_height), color="white")
-        # center top_combined
-        final_img.paste(top_combined, ((final_width - top_combined.width) // 2, 0))
-        # paste table centered
-        final_img.paste(table_img, ((final_width - table_img.width) // 2, top_combined.height + spacing))
-
-        # draw footer text
-        from PIL import ImageDraw, ImageFont
-        draw = ImageDraw.Draw(final_img)
-        # try to load a default font; if not available, Pillow will fallback
-        try:
-            font = ImageFont.truetype("arial.ttf", 14)
-        except Exception:
-            font = ImageFont.load_default()
-        footer_text = f"Designed by {settings.get('compound_name', '')} - Generated: {datetime.now(wat_tz).strftime('%d-%m-%Y %I:%M')}"
-        text_w, text_h = draw.textsize(footer_text, font=font)
-        draw.text(((final_width - text_w) // 2, top_combined.height + spacing + table_img.height + (spacing // 2)),
-                  footer_text, fill=(80, 80, 80), font=font)
-
-        # Convert to JPEG bytes
-        out_buf = io.BytesIO()
-        final_img.save(out_buf, format="JPEG", quality=90)
-        out_buf.seek(0)
-        return out_buf.getvalue()
-    except Exception as e:
-        st.error(f"Error creating combined image: {e}")
-        return None
-
-# -------------------------
-# Calculation helpers (save_calculation uses create_calculation_data)
-# -------------------------
-def save_calculation(timestamp, initial_readings, final_readings,
-                     consumptions, costs, total_costs, water_consumed,
-                     water_cost, rate, total_amount):
-    """Save a single calculation as a new row in Google Sheets (consistent with headers)."""
-    if sheet is None:
-        st.error("Google Sheet not initialized. Cannot save calculation.")
-        return
-
-    try:
-        calculation_data = create_calculation_data(
-            timestamp, initial_readings, final_readings,
-            consumptions, costs, total_costs, water_consumed,
-            water_cost, rate, total_amount
-        )
-
-        # Always enforce the canonical header order
-        headers = get_sheet_headers()
-        existing_values = sheet.get_all_values()
-        if not existing_values:
-            # Add headers if sheet is completely empty
-            sheet.append_row(headers)
-        else:
-            # If headers differ, reconcile them
-            sheet_headers = sheet.row_values(1)
-            if sheet_headers != headers:
-                st.warning("⚠️ Sheet headers differ from expected schema — reconciling.")
-                # Reset to canonical headers
-                sheet.clear()
-                sheet.append_row(headers)
-
-        # Build row in strict header order
-        row = [calculation_data.get(h, "") for h in headers]
-
-        # Convert floats to round numbers where appropriate (avoid "123.0" as text)
-        row = [round(v, 2) if isinstance(v, (int, float)) else v for v in row]
-
-        sheet.append_row(row)
-        st.success("✅ Calculation saved to Google Sheets!")
-    except Exception as e:
-        st.error(f"❌ Failed to save calculation: {e}")
 
 # -------------------------
 # Pages
@@ -701,11 +632,10 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     with col2:
         st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Save / Export / Image operations
+    # Save / Export operations
     col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         if st.button("💾 Save This Calculation", key="save_calc"):
-            # timestamp should be consistent and human-friendly
             timestamp = current_timestamp
             save_calculation(timestamp, initial_readings, final_readings,
                              consumptions, costs, total_costs, water_consumed,
@@ -727,16 +657,15 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             st.warning("No history to export!")
 
     with col3:
-        # Allow download of a combined JPEG (table + breakdown + chart)
+        # Allow download of summary report as JPEG
         if df_summary is not None and not df_summary.empty:
             def export_summary_as_image(df, breakdown_text):
-                # Round numeric columns to 1 decimal place where appropriate
                 for col in ["Initial (kWh)", "Final (kWh)", "Consumed (kWh)"]:
                     if col in df.columns:
                         df[col] = df[col].astype(float).round(1)
             
-                fig = plt.figure(figsize=(9, 14))  # Taller canvas for better spacing
-                gs = fig.add_gridspec(3, 1, height_ratios=[1.5, 2, 2.5])  # allocate more space for breakdown + table
+                fig = plt.figure(figsize=(9, 14))
+                gs = fig.add_gridspec(3, 1, height_ratios=[1.5, 2, 2.5])
             
                 # 1. Horizontal bar chart
                 ax1 = fig.add_subplot(gs[0])
@@ -747,11 +676,10 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                     x="Consumed (kWh)",
                     palette="Blues_d"
                 )
-                ax1.set_title(f"Owolawi Compd Electricity Consumption Breakdown: {datetime.now(wat_tz).strftime('%a, %d-%m-%Y %I:%M %p')}", fontsize=13, weight="bold")
+                ax1.set_title(f"Owolawi Compd Electricity Consumption: {datetime.now(wat_tz).strftime('%a, %d-%m-%Y %I:%M %p')}", fontsize=13, weight="bold")
                 ax1.set_xlabel("Consumption (kWh)")
                 ax1.set_ylabel("")
             
-                # Data labels on bars
                 for bar in bars.patches:
                     width = bar.get_width()
                     ax1.text(width + 0.01, bar.get_y() + bar.get_height() / 2,
@@ -774,7 +702,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 )
                 table.auto_set_font_size(False)
                 table.set_fontsize(9)
-                table.scale(1, 1.3)  # widen rows for readability
+                table.scale(1, 1.3)
             
                 plt.tight_layout()
             
@@ -784,27 +712,25 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 buf.seek(0)
                 return buf.getvalue()
     
-            jpeg_bytes = export_summary_as_image(df_summary, st.session_state["breakdown_text"])
+            jpeg_bytes = export_summary_as_image(df_summary, st.session_state.get("breakdown_text", ""))
     
             st.download_button(
                 label="📷 Download Report JPEG",
                 data=jpeg_bytes,
-                file_name=f"{settings['compound_name']}_Electricity_Consumption_report_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.jpg",
+                file_name=f"{settings['compound_name']}_report_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.jpg",
                 mime="image/jpeg",
                 key="download_jpg"
             )
-    
 
 def history_page():
     st.header("📈 Consumption History & Analytics")
 
     history = load_history()
-
-    # -------------------------
-    # Convert to DataFrame + coerce numerics early
-    # -------------------------
     df_history = pd.DataFrame(history)
-    df_history = _coerce_history_numeric(df_history)
+    
+    # Convert to numeric early
+    if not df_history.empty:
+        df_history = _coerce_history_numeric(df_history)
 
     # Export & reset options
     col1, col2, col3 = st.columns(3)
@@ -841,146 +767,229 @@ def history_page():
                 st.success("All history cleared from Google Sheets and session.")
                 st.rerun()
 
-    # Display recent history table
-    display_columns = ['timestamp']
-    occupants = st.session_state.settings['occupants']
-
-    for i, occupant in enumerate(occupants):
-        display_columns.append(f'occupant_{i}_total')
-    display_columns.extend(['water_cost', 'total_amount'])
-
-    if not df_history.empty and all(col in df_history.columns for col in display_columns):
-        display_df = df_history[display_columns].tail(10)
-        rename_dict = {'timestamp': 'Date/Time', 'water_cost': 'Water Cost', 'total_amount': 'Total'}
+    # Display recent history table with better column detection
+    if not df_history.empty:
+        st.subheader("📋 Recent History")
+        
+        # Identify available columns for display
+        available_cols = df_history.columns.tolist()
+        display_columns = []
+        
+        # Always try to include timestamp
+        if 'timestamp' in available_cols:
+            display_columns.append('timestamp')
+        
+        # Add occupant total columns that exist
+        occupants = st.session_state.settings['occupants']
         for i, occupant in enumerate(occupants):
-            rename_dict[f'occupant_{i}_total'] = f"{occupant['name']} ({st.session_state.settings['currency']})"
-        display_df = display_df.rename(columns=rename_dict)
-        st.dataframe(display_df.iloc[::-1], use_container_width=True)
+            total_col = f'occupant_{i}_total'
+            if total_col in available_cols:
+                display_columns.append(total_col)
+        
+        # Add water and total amount if they exist
+        for col in ['water_cost', 'total_amount']:
+            if col in available_cols:
+                display_columns.append(col)
+        
+        if display_columns:
+            try:
+                display_df = df_history[display_columns].tail(10).copy()
+                
+                # Create rename dictionary
+                rename_dict = {}
+                if 'timestamp' in display_columns:
+                    rename_dict['timestamp'] = 'Date/Time'
+                if 'water_cost' in display_columns:
+                    rename_dict['water_cost'] = 'Water Cost'
+                if 'total_amount' in display_columns:
+                    rename_dict['total_amount'] = 'Total Amount'
+                
+                for i, occupant in enumerate(occupants):
+                    total_col = f'occupant_{i}_total'
+                    if total_col in display_columns:
+                        rename_dict[total_col] = f"{occupant['name']} ({st.session_state.settings['currency']})"
+                
+                display_df = display_df.rename(columns=rename_dict)
+                
+                # Show most recent first
+                st.dataframe(display_df.iloc[::-1], use_container_width=True)
+                
+            except Exception as e:
+                st.error(f"Error displaying history table: {e}")
+                st.write("Available columns:", available_cols)
+        else:
+            st.warning("No suitable columns found for display in history data.")
     else:
-        st.warning("History exists but expected columns are missing in some records. This may happen if older records used a different schema.")
+        st.info("No history data available. Start by making some calculations!")
 
-    # -------------------------
-    # Analytics charts if >1 record
-    # -------------------------
+    # Analytics charts if we have enough data
     if len(df_history) > 1:
         st.subheader("📊 Consumption Trends")
         try:
+            # Handle date parsing more robustly
+            df_history['date'] = None
+            
             if 'timestamp_iso' in df_history.columns:
                 df_history['date'] = pd.to_datetime(
                     df_history['timestamp_iso'], errors="coerce"
                 ).dt.date
             elif 'timestamp' in df_history.columns:
-                # fallback if some old rows only have human-readable timestamp
+                # Try to parse human-readable timestamp
                 df_history['date'] = pd.to_datetime(
-                    df_history['timestamp'], errors="coerce"
+                    df_history['timestamp'], errors="coerce", infer_datetime_format=True
                 ).dt.date
+            
+            # Only show charts if we have valid dates
+            if df_history['date'].notna().any():
+                # Consumption trends
+                fig_line = go.Figure()
+                colors = ['#FF9999', '#66B2FF', '#99FF99', '#FFCC99', '#FFB366', '#B366FF']
+
+                occupants = st.session_state.settings['occupants']
+                for i, occupant in enumerate(occupants):
+                    col_name = f'occupant_{i}_consumed'
+                    if col_name in df_history.columns:
+                        # Filter out rows where date or consumption is null
+                        valid_data = df_history[
+                            df_history['date'].notna() & 
+                            df_history[col_name].notna()
+                        ]
+                        if not valid_data.empty:
+                            fig_line.add_trace(go.Scatter(
+                                x=valid_data['date'],
+                                y=valid_data[col_name],
+                                mode='lines+markers',
+                                name=occupant['name'],
+                                line=dict(color=colors[i % len(colors)])
+                            ))
+
+                if 'water_consumed' in df_history.columns:
+                    valid_water = df_history[
+                        df_history['date'].notna() & 
+                        df_history['water_consumed'].notna()
+                    ]
+                    if not valid_water.empty:
+                        fig_line.add_trace(go.Scatter(
+                            x=valid_water['date'],
+                            y=valid_water['water_consumed'],
+                            mode='lines+markers',
+                            name='Water Pump',
+                            line=dict(color='#FFCC99')
+                        ))
+
+                fig_line.update_layout(
+                    title="Consumption Trends Over Time",
+                    xaxis_title="Date",
+                    yaxis_title="Consumption (kWh)",
+                    hovermode='x'
+                )
+                st.plotly_chart(fig_line, use_container_width=True)
+
+                # Cost trends
+                fig_cost = go.Figure()
+                for i, occupant in enumerate(occupants):
+                    col_name = f'occupant_{i}_total'
+                    if col_name in df_history.columns:
+                        valid_data = df_history[
+                            df_history['date'].notna() & 
+                            df_history[col_name].notna()
+                        ]
+                        if not valid_data.empty:
+                            fig_cost.add_trace(go.Scatter(
+                                x=valid_data['date'],
+                                y=valid_data[col_name],
+                                mode='lines+markers',
+                                name=f"{occupant['name']} Total",
+                                line=dict(color=colors[i % len(colors)])
+                            ))
+
+                fig_cost.update_layout(
+                    title="Total Cost Trends Over Time",
+                    xaxis_title="Date",
+                    yaxis_title=f"Cost ({st.session_state.settings['currency']})",
+                    hovermode='x'
+                )
+                st.plotly_chart(fig_cost, use_container_width=True)
             else:
-                st.warning("No valid timestamp column found for trend analysis.")
-                df_history['date'] = pd.NaT
-    
-            # Consumption trends
-            fig_line = go.Figure()
-            colors = ['#FF9999', '#66B2FF', '#99FF99', '#FFCC99', '#FFB366', '#B366FF']
-    
-            for i, occupant in enumerate(occupants):
-                col_name = f'occupant_{i}_consumed'
-                if col_name in df_history.columns:
-                    fig_line.add_trace(go.Scatter(
-                        x=df_history['date'],
-                        y=df_history[col_name],
-                        mode='lines+markers',
-                        name=occupant['name'],
-                        line=dict(color=colors[i % len(colors)])
-                    ))
-    
-            if 'water_consumed' in df_history.columns:
-                fig_line.add_trace(go.Scatter(
-                    x=df_history['date'],
-                    y=df_history['water_consumed'],
-                    mode='lines+markers',
-                    name='Water Pump',
-                    line=dict(color='#FFCC99')
-                ))
-    
-            fig_line.update_layout(
-                title="Consumption Trends Over Time",
-                xaxis_title="Date",
-                yaxis_title="Consumption (kWh)",
-                hovermode='x'
-            )
-            st.plotly_chart(fig_line, use_container_width=True)
-    
-            # Cost trends
-            fig_cost = go.Figure()
-            for i, occupant in enumerate(occupants):
-                col_name = f'occupant_{i}_total'
-                if col_name in df_history.columns:
-                    fig_cost.add_trace(go.Scatter(
-                        x=df_history['date'],
-                        y=df_history[col_name],
-                        mode='lines+markers',
-                        name=f"{occupant['name']} Total",
-                        line=dict(color=colors[i % len(colors)])
-                    ))
-    
-            fig_cost.update_layout(
-                title="Total Cost Trends Over Time",
-                xaxis_title="Date",
-                yaxis_title=f"Cost ({st.session_state.settings['currency']})",
-                hovermode='x'
-            )
-            st.plotly_chart(fig_cost, use_container_width=True)
-    
+                st.warning("Unable to parse dates for trend analysis.")
+
         except Exception as e:
             st.error(f"Error rendering trend charts: {e}")
 
-    # -------------------------
     # Summary statistics
-    # -------------------------
-    st.subheader("📈 Summary Statistics")
     if not df_history.empty:
-        cols = st.columns(min(4, len(occupants) + 1))
+        st.subheader("📈 Summary Statistics")
+        cols = st.columns(min(4, len(st.session_state.settings['occupants']) + 1))
+        
+        occupants = st.session_state.settings['occupants']
         for i, occupant in enumerate(occupants):
             if i < 4:
                 with cols[i]:
                     consumed_col = f'occupant_{i}_consumed'
                     if consumed_col in df_history.columns:
-                        avg_consumption = df_history[consumed_col].mean()
-                        st.metric(f"Average - {occupant['name']}", f"{avg_consumption:.1f} kWh")
+                        consumed_data = pd.to_numeric(df_history[consumed_col], errors='coerce').dropna()
+                        if len(consumed_data) > 0:
+                            avg_consumption = consumed_data.mean()
+                            st.metric(f"Average - {occupant['name']}", f"{avg_consumption:.1f} kWh")
+                        else:
+                            st.metric(f"Average - {occupant['name']}", "No data")
 
         # Water pump average
         if len(occupants) < 4:
             with cols[len(occupants)]:
                 if 'water_consumed' in df_history.columns:
-                    avg_water = df_history['water_consumed'].mean()
-                    st.metric("Average - Water Pump", f"{avg_water:.1f} kWh")
+                    water_data = pd.to_numeric(df_history['water_consumed'], errors='coerce').dropna()
+                    if len(water_data) > 0:
+                        avg_water = water_data.mean()
+                        st.metric("Average - Water Pump", f"{avg_water:.1f} kWh")
+                    else:
+                        st.metric("Average - Water Pump", "No data")
 
-# settings page
 def settings_page():
     st.header("⚙️ Settings & Data Management")
 
     st.subheader("📊 Current Status")
     history = load_history()
     df_history = pd.DataFrame(history)
-    df_history = _coerce_history_numeric(df_history)
+    
+    if not df_history.empty:
+        df_history = _coerce_history_numeric(df_history)
 
     st.info(f"Total calculations saved: {len(df_history)}")
 
     if not df_history.empty:
-        latest = df_history.iloc[-1].to_dict()
-        st.success(f"Last calculation: {latest.get('timestamp', 'No timestamp')}")
-        occupants = st.session_state.settings['occupants']
-        cols = st.columns(min(4, len(occupants) + 1))
-        for i, occupant in enumerate(occupants):
-            if i < 4:
-                with cols[i]:
-                    final_key = f'occupant_{i}_final'
-                    if final_key in latest:
-                        st.metric(f"{occupant['name']} - Last Final", f"{latest[final_key]:.1f} kWh")
-        if len(occupants) < 4:
-            with cols[len(occupants)]:
-                if 'water_final' in latest:
-                    st.metric("Water Pump - Last Final", f"{latest['water_final']:.1f} kWh")
+        try:
+            latest = df_history.iloc[-1].to_dict()
+            timestamp_val = latest.get('timestamp', 'No timestamp available')
+            st.success(f"Last calculation: {timestamp_val}")
+            
+            occupants = st.session_state.settings['occupants']
+            cols = st.columns(min(4, len(occupants) + 1))
+            for i, occupant in enumerate(occupants):
+                if i < 4:
+                    with cols[i]:
+                        final_key = f'occupant_{i}_final'
+                        if final_key in latest and latest[final_key] is not None:
+                            try:
+                                value = float(latest[final_key])
+                                st.metric(f"{occupant['name']} - Last Final", f"{value:.1f} kWh")
+                            except (ValueError, TypeError):
+                                st.metric(f"{occupant['name']} - Last Final", "Invalid data")
+                        else:
+                            st.metric(f"{occupant['name']} - Last Final", "No data")
+            
+            if len(occupants) < 4:
+                with cols[len(occupants)]:
+                    if 'water_final' in latest and latest['water_final'] is not None:
+                        try:
+                            value = float(latest['water_final'])
+                            st.metric("Water Pump - Last Final", f"{value:.1f} kWh")
+                        except (ValueError, TypeError):
+                            st.metric("Water Pump - Last Final", "Invalid data")
+                    else:
+                        st.metric("Water Pump - Last Final", "No data")
+        except Exception as e:
+            st.warning(f"Error displaying latest data: {e}")
 
     st.subheader("🗂️ Data Management")
     col1, col2, col3 = st.columns(3)
@@ -992,7 +1001,7 @@ def settings_page():
                 data=json_data,
                 file_name=f"electricity_history_{datetime.now().strftime('%d%m%Y')}.json",
                 mime="application/json",
-                key="download_history_json"
+                key="download_history_json_settings"
             )
         else:
             st.warning("No history to download!")
@@ -1006,7 +1015,7 @@ def settings_page():
                     data=excel_data,
                     file_name=f"{st.session_state.settings['compound_name']}_history_{datetime.now().strftime('%d%m%Y')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="download_history_excel"
+                    key="download_history_excel_settings"
                 )
             else:
                 st.error("Excel export failed. Please try again.")
@@ -1023,7 +1032,7 @@ def settings_page():
     st.subheader("ℹ️ About This App")
     compound_name = st.session_state.settings['compound_name']
     st.markdown(f"""
-    **{compound_name} Electricity Tracker Insight** helps:
+    **{compound_name} Electricity Tracker** helps:
     - Track individual electricity consumption
     - Split water pump costs fairly among occupants
     - Maintain historical records in **Google Sheets** with Excel/JSON export
@@ -1163,7 +1172,6 @@ def customization_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("💾 Save All Customizations", type="primary", key="save_customizations"):
-            # settings are stored in session state already, give user feedback
             st.success("✅ All customizations saved successfully!")
             st.info("🔄 Refresh the page to see all changes")
 
@@ -1203,7 +1211,7 @@ def customization_page():
     with col3:
         st.markdown('<div class="preview-card">', unsafe_allow_html=True)
         st.write("📊 **Summary**")
-        st.write(f"Colors: Primary, Secondary, Success")
+        st.write("Colors: Primary, Secondary, Success")
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Import/Export settings
@@ -1251,11 +1259,7 @@ def main():
         customization_page()
 
 if __name__ == "__main__":
-    # Initialize Google Sheet (adds headers if sheet is empty)
-    init_sheet()
     main()
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
-
-
