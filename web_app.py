@@ -656,20 +656,20 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             del st.session_state['latest_calculation']
             st.rerun()
 
-    with col2:
-        df_history = pd.DataFrame(load_history())
-        if not df_history.empty:
-            excel_data = export_to_excel(df_history)
-            if excel_data:
-                st.download_button(
-                    label="📊 Export to Excel",
-                    data=excel_data,
-                    file_name=f"{settings['compound_name']}_electricity_history_{datetime.now().strftime('%d%m%Y')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="download_excel"
-                )
-        else:
-            st.warning("No history to export!")
+    # with col2:
+    #     df_history = pd.DataFrame(load_history())
+    #     if not df_history.empty:
+    #         excel_data = export_to_excel(df_history)
+    #         if excel_data:
+    #             st.download_button(
+    #                 label="📊 Export to Excel",
+    #                 data=excel_data,
+    #                 file_name=f"{settings['compound_name']}_electricity_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.xlsx",
+    #                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    #                 key="download_excel"
+    #             )
+    #     else:
+    #         st.warning("No history to export!")
 
     with col3:
         # Allow download of summary report as JPEG
@@ -755,7 +755,7 @@ def history_page():
             st.download_button(
                 label="📥 Download History (JSON)",
                 data=json_data,
-                file_name=f"electricity_history_{datetime.now().strftime('%d%m%Y')}.json",
+                file_name=f"electricity_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.json", 
                 mime="application/json",
                 key="download_history_json"
             )
@@ -769,7 +769,7 @@ def history_page():
                 st.download_button(
                     label="📊 Export to Excel",
                     data=excel_data,
-                    file_name=f"{st.session_state.settings['compound_name']}_history_{datetime.now().strftime('%d%m%Y')}.xlsx",
+                    file_name=f"{st.session_state.settings['compound_name']}_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="download_history_excel"
                 )
@@ -1014,7 +1014,7 @@ def settings_page():
             st.download_button(
                 label="📥 Download History (JSON)",
                 data=json_data,
-                file_name=f"electricity_history_{datetime.now().strftime('%d%m%Y')}.json",
+                file_name=f"electricity_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.json",
                 mime="application/json",
                 key="download_history_json_settings"
             )
@@ -1028,7 +1028,7 @@ def settings_page():
                 st.download_button(
                     label="📊 Export to Excel",
                     data=excel_data,
-                    file_name=f"{st.session_state.settings['compound_name']}_history_{datetime.now().strftime('%d%m%Y')}.xlsx",
+                    file_name=f"{st.session_state.settings['compound_name']}_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="download_history_excel_settings"
                 )
@@ -1237,7 +1237,7 @@ def customization_page():
         st.download_button(
             label="📥 Export Settings",
             data=settings_json,
-            file_name=f"{settings['compound_name']}_settings_{datetime.now().strftime('%d%m%Y')}.json",
+            file_name=f"{settings['compound_name']}_settings_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.json",
             mime="application/json",
             key="download_settings"
         )
@@ -1278,6 +1278,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
