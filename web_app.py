@@ -76,6 +76,9 @@ if 'settings' not in st.session_state:
         'currency': '₦'
     }
 
+if 'admin_authenticated' not in st.session_state:
+    st.session_state.admin_authenticated = False
+
 # -------------------------
 # Utilities: persistence with improved error handling
 # -------------------------
@@ -349,6 +352,44 @@ def get_latest_readings():
             result[f"occupant_{i}_final"] = 0.0
         return result
 
+# Admin authentication
+def check_admin_password():
+    """Check if user has entered correct admin password"""
+    if not st.session_state.admin_authenticated:
+        st.subheader("🔐 Admin Access Required")
+        st.warning("This page requires admin authentication to prevent unauthorized changes.")
+        
+        password = st.text_input("Enter admin password:", type="password", key="admin_password")
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            if st.button("Login", key="admin_login"):
+                # password stored in Streamlit secrets
+                ADMIN_PASSWORD = st.secrets["passwords"]["admin_password"]  
+                
+                if password == ADMIN_PASSWORD:
+                    st.session_state.admin_authenticated = True
+                    st.success("Access granted! Refreshing page...")
+                    st.rerun()
+                else:
+                    st.error("Incorrect password. Access denied.")
+        
+        with col2:
+            if st.button("Back to Main", key="back_to_main"):
+                # Force navigation back to calculation page
+                st.session_state.temp_page_redirect = "📊 New Calculation"
+                st.rerun()
+        
+        return False
+    else:
+        # Show logout option
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("🔓 Logout", key="admin_logout"):
+                st.session_state.admin_authenticated = False
+                st.rerun()
+        return True
+        
 # -------------------------
 # Dynamic CSS based on settings
 # -------------------------
@@ -961,6 +1002,9 @@ def history_page():
                         st.metric("Average - Water Pump", "No data")
 
 def settings_page():
+    if not check_admin_password():
+        return  # Exit early if not authenticated
+        
     st.header("⚙️ Settings & Data Management")
 
     st.subheader("📊 Current Status")
@@ -1068,6 +1112,9 @@ def settings_page():
     """)
 
 def customization_page():
+    if not check_admin_password():
+        return  # Exit early if not authenticated
+        
     settings = st.session_state.settings
     st.header("🎨 Customization & Configuration")
 
@@ -1262,7 +1309,19 @@ def main():
 
     # Sidebar for navigation
     st.sidebar.title("🏠 Navigation")
-    page = st.sidebar.selectbox("Choose Page", ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"])
+    
+    # Handle temporary page redirect
+    if 'temp_page_redirect' in st.session_state:
+        default_page = st.session_state.temp_page_redirect
+        del st.session_state.temp_page_redirect
+    else:
+        default_page = "📊 New Calculation"
+    
+    page = st.sidebar.selectbox(
+        "Choose Page", 
+        ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"],
+        index=["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"].index(default_page) if default_page in ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"] else 0
+    )
 
     if page == "📊 New Calculation":
         calculation_page()
@@ -1278,6 +1337,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
