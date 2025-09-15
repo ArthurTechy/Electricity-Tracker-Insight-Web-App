@@ -354,16 +354,32 @@ def get_latest_readings():
 
 # Admin authentication
 def check_admin_password():
-    """Check if user has entered correct admin password"""
+    """Check if user has entered correct admin password using st.form"""
     if not st.session_state.admin_authenticated:
         st.subheader("🔐 Admin Access Required")
         st.warning("This page requires admin authentication to prevent unauthorized changes.")
         
-        password = st.text_input("Enter admin password:", type="password", key="admin_password")
-        col1, col2 = st.columns([1, 3])
+        # Using form automatically handles Enter key submission
+        with st.form("admin_login_form"):
+            password = st.text_input(
+                "Enter admin password:", 
+                type="password",
+                help="Press Enter or click Login to authenticate"
+            )
+            
+            col1, col2 = st.columns([1, 3])
+            
+            with col1:
+                login_submitted = st.form_submit_button("Login", type="primary")
         
-        with col1:
-            if st.button("Login", key="admin_login"):
+        # Handle back to main outside the form
+        if st.button("Back to Main", key="back_to_main"):
+            st.session_state.current_page = "📊 New Calculation"
+            st.rerun()
+        
+        # Process login when form is submitted (works with Enter key)
+        if login_submitted:
+            if password:
                 try:
                     ADMIN_PASSWORD = st.secrets["passwords"]["admin_password"]
                 except KeyError:
@@ -376,12 +392,8 @@ def check_admin_password():
                     st.rerun()
                 else:
                     st.error("Incorrect password. Access denied.")
-        
-        with col2:
-            if st.button("Back to Main", key="back_to_main"):
-                # Set the page selection directly in session state
-                st.session_state.current_page = "📊 New Calculation"
-                st.rerun()
+            else:
+                st.warning("Please enter a password.")
         
         return False
     else:
@@ -1345,6 +1357,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
