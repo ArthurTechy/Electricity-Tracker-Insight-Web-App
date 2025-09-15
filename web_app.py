@@ -18,7 +18,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # -------------------------
-# IMPORTANT: page config must be first Streamlit call
+# page config
 # -------------------------
 st.set_page_config(
     page_title="Owolawi Compound - Electricity Tracker",
@@ -428,17 +428,15 @@ def calculation_page():
 
     # Input section
     st.subheader("📝 Enter Initial Readings (kWh)")
-
     occupants = settings['occupants']
     num_cols = len(occupants) + 1
     cols = st.columns(num_cols)
-
     initial_readings = {}
     final_readings = {}
 
     for i, occupant in enumerate(occupants):
         with cols[i]:
-            st.markdown('<div class="occupant-card">', unsafe_allow_html=True)
+            st.markdown(f'<div class="occupant-card">', unsafe_allow_html=True)
             st.markdown(f"{occupant['icon']} **{occupant['name']}**")
             key = f"occupant_{i}"
             initial_readings[key] = st.number_input(
@@ -499,7 +497,21 @@ def calculation_page():
     )
 
     if st.button("🧮 Calculate Bills", type="primary", key="calculate_bills"):
-        calculate_and_display_results(initial_readings, final_readings, rate_per_kwh)
+        # Instead of calling display function directly, save results to session_state
+        st.session_state['latest_calculation'] = {
+            'initial_readings': initial_readings,
+            'final_readings': final_readings,
+            'rate': rate_per_kwh
+        }
+
+    # Now, if a calculation exists in session state, display it
+    if 'latest_calculation' in st.session_state:
+        calc_data = st.session_state['latest_calculation']
+        calculate_and_display_results(
+            calc_data['initial_readings'],
+            calc_data['final_readings'],
+            calc_data['rate']
+        )
 
 def calculate_and_display_results(initial_readings, final_readings, rate):
     settings = st.session_state.settings
@@ -640,6 +652,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             save_calculation(timestamp, initial_readings, final_readings,
                              consumptions, costs, total_costs, water_consumed,
                              water_cost, rate, total_amount)
+            # clear the results and rerun
+            del st.session_state['latest_calculation']
+            st.rerun()
 
     with col2:
         df_history = pd.DataFrame(load_history())
@@ -1263,5 +1278,6 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
