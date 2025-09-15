@@ -364,8 +364,11 @@ def check_admin_password():
         
         with col1:
             if st.button("Login", key="admin_login"):
-                # password stored in Streamlit secrets
-                ADMIN_PASSWORD = st.secrets["passwords"]["admin_password"]  
+                try:
+                    ADMIN_PASSWORD = st.secrets["passwords"]["admin_password"]
+                except KeyError:
+                    st.error("Admin password not configured in secrets. Please contact the administrator.")
+                    return False
                 
                 if password == ADMIN_PASSWORD:
                     st.session_state.admin_authenticated = True
@@ -376,7 +379,7 @@ def check_admin_password():
         
         with col2:
             if st.button("Back to Main", key="back_to_main"):
-                # Force navigation back to calculation page
+                # Set the redirect to the main calculation page
                 st.session_state.temp_page_redirect = "📊 New Calculation"
                 st.rerun()
         
@@ -1310,17 +1313,20 @@ def main():
     # Sidebar for navigation
     st.sidebar.title("🏠 Navigation")
     
-    # Handle temporary page redirect
+    # Handle temporary page redirect from "Back to Main" button
+    default_index = 0  # Default to "📊 New Calculation"
+    
     if 'temp_page_redirect' in st.session_state:
-        default_page = st.session_state.temp_page_redirect
+        target_page = st.session_state.temp_page_redirect
+        pages = ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"]
+        if target_page in pages:
+            default_index = pages.index(target_page)
         del st.session_state.temp_page_redirect
-    else:
-        default_page = "📊 New Calculation"
     
     page = st.sidebar.selectbox(
         "Choose Page", 
         ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"],
-        index=["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"].index(default_page) if default_page in ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"] else 0
+        index=default_index
     )
 
     if page == "📊 New Calculation":
@@ -1337,6 +1343,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
