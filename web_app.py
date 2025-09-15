@@ -379,8 +379,8 @@ def check_admin_password():
         
         with col2:
             if st.button("Back to Main", key="back_to_main"):
-                # Set the redirect to the main calculation page
-                st.session_state.temp_page_redirect = "📊 New Calculation"
+                # Set the page selection directly in session state
+                st.session_state.current_page = "📊 New Calculation"
                 st.rerun()
         
         return False
@@ -1310,24 +1310,26 @@ def main():
     settings = st.session_state.settings
     st.markdown(f'<h1 class="main-header">⚡ {settings["compound_name"]} Electricity Tracker</h1>', unsafe_allow_html=True)
 
+    # Initialize current_page in session state if not exists
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "📊 New Calculation"
+
     # Sidebar for navigation
     st.sidebar.title("🏠 Navigation")
     
-    # Handle temporary page redirect from "Back to Main" button
-    default_index = 0  # Default to "📊 New Calculation"
+    pages = ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"]
     
-    if 'temp_page_redirect' in st.session_state:
-        target_page = st.session_state.temp_page_redirect
-        pages = ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"]
-        if target_page in pages:
-            default_index = pages.index(target_page)
-        del st.session_state.temp_page_redirect
-    
+    # Use session state to control the selectbox
     page = st.sidebar.selectbox(
         "Choose Page", 
-        ["📊 New Calculation", "📈 History & Charts", "⚙️ Settings", "🎨 Customization"],
-        index=default_index
+        pages,
+        index=pages.index(st.session_state.current_page),
+        key="page_selector"
     )
+    
+    # Update session state when selectbox changes
+    if page != st.session_state.current_page:
+        st.session_state.current_page = page
 
     if page == "📊 New Calculation":
         calculation_page()
@@ -1343,6 +1345,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
