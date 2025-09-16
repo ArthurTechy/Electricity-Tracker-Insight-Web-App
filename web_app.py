@@ -831,12 +831,6 @@ def history_page():
                 )
             else:
                 st.error("Excel export failed. Please try again.")
-            
-    with col3:
-        if st.button("🗑️ Reset History (Google Sheets + session)", key="reset_history_confirm"):
-            if reset_history():
-                st.success("All history cleared from Google Sheets and session.")
-                st.rerun()
 
     # Display recent history table with better column detection
     if not df_history.empty:
@@ -1357,6 +1351,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
