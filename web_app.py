@@ -823,7 +823,7 @@ def history_page():
             excel_data = export_to_excel(df_history)
             if excel_data:
                 st.download_button(
-                    label="📊 Export to Excel",
+                    label="📊 Export History to Excel",
                     data=excel_data,
                     file_name=f"{st.session_state.settings['compound_name']}_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1351,6 +1351,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
