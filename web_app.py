@@ -712,21 +712,6 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             del st.session_state['latest_calculation']
             st.rerun()
 
-    # with col2:
-    #     df_history = pd.DataFrame(load_history())
-    #     if not df_history.empty:
-    #         excel_data = export_to_excel(df_history)
-    #         if excel_data:
-    #             st.download_button(
-    #                 label="📊 Export to Excel",
-    #                 data=excel_data,
-    #                 file_name=f"{settings['compound_name']}_electricity_history_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.xlsx",
-    #                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    #                 key="download_excel"
-    #             )
-    #     else:
-    #         st.warning("No history to export!")
-
     with col3:
         # Allow download of summary report as JPEG
         if df_summary is not None and not df_summary.empty:
@@ -788,7 +773,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             st.download_button(
                 label="📷 Download Report JPEG",
                 data=jpeg_bytes,
-                file_name=f"{settings['compound_name']}_report_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.jpg",
+                file_name=f"{settings['compound_name']}_Electricity_Consumption_report_{datetime.now(wat_tz).strftime('%d-%m-%Y_%I-%M%p')}.jpg",
                 mime="image/jpeg",
                 key="download_jpg"
             )
@@ -1351,6 +1336,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
