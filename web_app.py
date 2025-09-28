@@ -723,6 +723,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 fig = plt.figure(figsize=(9, 14))
                 gs = fig.add_gridspec(3, 1, height_ratios=[1.5, 2, 2.5])
             
+                # Define colors for occupants 
+                occupant_colors = ['#2E8B57', '#4682B4', '#8A2BE2', '#FF8C00', '#008B8B', '#9932CC', '#B8860B', '#006400']
+            
                 # 1. Horizontal bar chart
                 ax1 = fig.add_subplot(gs[0])
                 bars = sns.barplot(
@@ -747,7 +750,7 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 ax2.text(0, 1, breakdown_text, ha="left", va="top",
                          fontsize=10, family="monospace", wrap=True)
             
-                # 3. Summary table
+                # 3. Summary table with colored occupant names and total amounts
                 ax3 = fig.add_subplot(gs[2])
                 ax3.axis("off")
                 table = ax3.table(
@@ -759,6 +762,31 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
                 table.auto_set_font_size(False)
                 table.set_fontsize(9)
                 table.scale(1, 1.3)
+                
+                # Find the column indices for "Occupant" and "Total Amount (₦)"
+                occupant_col_idx = None
+                total_amount_col_idx = None
+                
+                for i, col in enumerate(df.columns):
+                    if col == "Occupant":
+                        occupant_col_idx = i
+                    elif "Total Amount" in col:
+                        total_amount_col_idx = i
+                
+                # Apply colors to occupant names and their corresponding total amounts
+                if occupant_col_idx is not None and total_amount_col_idx is not None:
+                    for row_idx in range(len(df)):
+                        color = occupant_colors[row_idx % len(occupant_colors)]
+                        
+                        # Color the occupant name cell
+                        table[(row_idx + 1, occupant_col_idx)].set_text_props(
+                            weight='bold', color=color
+                        )
+                        
+                        # Color the total amount cell with the same color
+                        table[(row_idx + 1, total_amount_col_idx)].set_text_props(
+                            weight='bold', color=color
+                        )
             
                 plt.tight_layout()
             
@@ -952,6 +980,21 @@ def history_page():
                                 name=f"{occupant['name']} Total",
                                 line=dict(color=colors[i % len(colors)])
                             ))
+                
+                # Water cost trend
+                if 'water_total' in df_history.columns:
+                    valid_water_cost = df_history[
+                        df_history['date'].notna() & 
+                        df_history['water_total'].notna()
+                    ]
+                    if not valid_water_cost.empty:
+                        fig_cost.add_trace(go.Scatter(
+                            x=valid_water_cost['date'],
+                            y=valid_water_cost['water_total'],
+                            mode='lines+markers',
+                            name='Water Pump Total',
+                            line=dict(color='#FFCC99')  
+                        ))
 
                 fig_cost.update_layout(
                     title="Total Cost Trends Over Time",
@@ -1336,6 +1379,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
