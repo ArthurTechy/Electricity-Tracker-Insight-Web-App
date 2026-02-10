@@ -357,7 +357,7 @@ def check_admin_password():
     """Check if user has entered correct admin password using st.form"""
     if not st.session_state.admin_authenticated:
         st.subheader("🔐 Admin Access Required")
-        st.warning("This page requires admin authentication to prevent unauthorized changes.")
+        st.warning("This page requires admin authentication to prevent unauthorized access/changes.")
         
         # Using form automatically handles Enter key submission
         with st.form("admin_login_form"):
@@ -1382,6 +1382,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
