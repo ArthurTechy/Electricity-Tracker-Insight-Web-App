@@ -703,14 +703,36 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
     # Save / Export operations
     col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
-        if st.button("💾 Save This Calculation", key="save_calc"):
-            timestamp = current_timestamp
-            save_calculation(timestamp, initial_readings, final_readings,
-                             consumptions, costs, total_costs, water_consumed,
-                             water_cost, rate, total_amount)
-            # clear the results and rerun
-            del st.session_state['latest_calculation']
-            st.rerun()
+        if st.session_state.admin_authenticated:
+            # If already logged in, just show the save button
+            if st.button("💾 Save This Calculation", key="save_calc"):
+                timestamp = current_timestamp
+                save_calculation(timestamp, initial_readings, final_readings,
+                                 consumptions, costs, total_costs, water_consumed,
+                                 water_cost, rate, total_amount)
+                
+                # This part clears the results and goes "Home"
+                del st.session_state['latest_calculation']
+                st.rerun()
+        else:
+            # If NOT logged in, show a small password field right here
+            st.warning("🔐 Admin Password Required to Save")
+            with st.popover("Unlock Save Button"):
+                pwd = st.text_input("Enter Admin Password", type="password", key="quick_auth_pwd")
+                if st.button("Verify & Save"):
+                    if pwd == st.secrets["passwords"]["admin_password"]:
+                        st.session_state.admin_authenticated = True
+                        # Trigger the save immediately
+                        save_calculation(current_timestamp, initial_readings, final_readings,
+                                         consumptions, costs, total_costs, water_consumed,
+                                         water_cost, rate, total_amount)
+                        
+                        # Clear and go home
+                        del st.session_state['latest_calculation']
+                        st.success("Authenticated and Saved!")
+                        st.rerun()
+                    else:
+                        st.error("Incorrect Password")
 
     with col3:
         # Allow download of summary report as JPEG
@@ -1382,6 +1404,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
