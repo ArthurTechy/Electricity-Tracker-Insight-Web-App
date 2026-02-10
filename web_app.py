@@ -807,6 +807,9 @@ def calculate_and_display_results(initial_readings, final_readings, rate):
             )
 
 def history_page():
+    if not check_admin_password():
+        return  # Exit early if not authenticated
+        
     st.header("📈 Consumption History & Analytics")
 
     history = load_history()
@@ -1379,6 +1382,7 @@ if __name__ == "__main__":
 
 # Footer
 st.markdown('<div class="designer-credit">Designed by **Arthur_Techy**</div>', unsafe_allow_html=True)
+
 
 
 
